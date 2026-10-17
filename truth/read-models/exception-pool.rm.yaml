@@ -1,0 +1,42 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: read-model
+id: exception-pool
+name: Exception Pool
+name_zh: 人工异常池
+description: >
+  Orders whose account update failed twice, waiting for human replay.
+  Queryable in the UI; replay is one click (single or all). Replay moves the
+  money without fault injection — but note the ledger keeps except_pool
+  (see slice replay-exception).
+description_zh: >
+  账务更新失败两次、等待人工重放的订单。UI 可查，一键重放（单个或全部）。
+  重放时资金确实会动且不再注入故障——但账本仍保持 except_pool
+  （见 slice replay-exception）。
+served_by:
+  - GET /api/bank-batch/exceptions
+  - POST /api/bank-batch/exceptions/replay
+  - POST /api/bank-batch/exceptions/:chain/:customerId/replay
+sources:
+  - customer-order
+fields:
+  - name: count
+    type: integer
+    derivation: pool size
+  - name: entries[].chain
+    type: string
+    derivation: chain of the parked order
+  - name: entries[].customerId
+    type: string
+    derivation: customer of the parked order
+  - name: entries[].name
+    type: string
+    derivation: display name
+  - name: entries[].amount
+    type: number
+    derivation: order amount
+  - name: entries[].reason
+    type: string
+    derivation: park reason, e.g. 账务更新两次失败
+  - name: entries[].at
+    type: instant
+    derivation: park time

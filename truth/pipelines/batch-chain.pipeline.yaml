@@ -1,0 +1,83 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: pipeline
+id: batch-chain
+name: Six-Stage Batch Chain
+name_zh: 六阶段批量链
+description: >
+  The six mechanical stages of one batch's interaction with the external
+  system, in fixed order. Each stage reads its input slot from the run state
+  and writes its output slot; a missing input slot fails fast ("stages must
+  run in chain order"). Cursor vocabulary (file-gen … classify) is the resume
+  language shared by the engine and the journal.
+description_zh: >
+  一批 items 与外部系统交互的六个机械阶段，顺序固定。每阶段从运行状态读
+  输入槽、写输出槽；输入槽缺失则快速失败（"stages must run in chain order"）。
+  游标词汇（file-gen … classify）是引擎与 journal 共用的续跑语言。
+stages:
+  - id: file-gen
+    name: Generate batch file
+    name_zh: 生成批量文件
+    description: Encode the batch items into a transfer file.
+    reads: [items, context]
+    writes: [generatedFile]
+    failure_codes: []
+    metadata: [localPath, fileName, byteSize, encoding]
+
+  - id: upload
+    name: Upload file
+    name_zh: 上传文件
+    description: Send the local file to the external system.
+    reads: [generatedFile]
+    writes: [receipt]
+    precondition: generatedFile present
+    failure_codes: []
+    metadata: [remotePath, bytesTransferred, timestamp]
+
+  - id: wait-ack
+    name: Wait for acknowledgement
+    name_zh: 等待外部确认
+    description: Wait for the external system to acknowledge receipt.
+    reads: [receipt]
+    writes: [ack]
+    precondition: receipt present
+    failure_codes:
+      - { code: ACK_TIMEOUT,  meaning: External system stayed silent past the wait }
+      - { code: ACK_REJECTED, meaning: External system refused the file }
+    metadata: [ackResult]
+
+  - id: poll
+    name: Poll response
+    name_zh: 轮询响应
+    description: Pull the external system's processing result file.
+    reads: [context]
+    writes: [responseFile]
+    failure_codes:
+      - { code: POLL_TIMEOUT, meaning: Response never became ready in time }
+      - { code: POLL_ERROR,   meaning: Polling itself errored }
+    metadata: [localPath, fileName, byteSize]
+
+  - id: parse
+    name: Parse response
+    name_zh: 解析响应
+    description: Decode the response file into structured raw results.
+    reads: [responseFile]
+    writes: [rawResults]
+    precondition: responseFile present
+    failure_codes: []
+    metadata: [resultCount]
+
+  - id: classify
+    name: Classify results
+    name_zh: 结果分类
+    description: Map each raw result to its item and tri-classify (success / failure / suspicious).
+    reads: [rawResults, items]
+    writes: [classifications]
+    precondition: rawResults present
+    failure_codes: []
+    metadata: [successCount, failureCount, suspiciousCount]
+
+failure_semantics: >
+  Classified failures throw StageFailedException. The demo configures no
+  failure interceptor, so a failed stage fails the run (same as the old
+  SubBatchProcessor behavior). A host may install an interceptor to
+  resolve-and-continue instead.

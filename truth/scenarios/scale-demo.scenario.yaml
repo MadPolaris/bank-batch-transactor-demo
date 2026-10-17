@@ -1,0 +1,61 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: scenario
+id: scale-demo
+name: Scale Demo Script
+name_zh: 规模演示剧本
+description: >
+  The web demo's deterministic script: 100,000 customers flow through two
+  chains (recharge then purchase) in 2,000-item batches, 6 at a time.
+  Outcomes are a deterministic hash of (chain, customer, round) — the same
+  customer always gets the same result, so breakpoint-resumes and reruns
+  reproduce the story exactly, including the crash-button demo.
+description_zh: >
+  Web 演示的确定性剧本：10 万客户经两条链（先充值后申购），每批 2000，
+  6 批并发。结果是（链，客户，轮次）的确定性哈希——同一客户永远同一结果，
+  断点续跑与重跑（包括宕机按钮演示）都能复现。
+scale:
+  customers: 100000
+  batch_size: 2000
+  batches: 50
+  max_concurrency: 6
+  funds: [成长混合A, 稳健增利B, 科技创新C]
+chains:
+  - id: recharge
+    name: Recharge
+    name_zh: 充值链
+    description: Batch file exchange with the partner bank → credited.
+  - id: purchase
+    name: Purchase
+    name_zh: 申购链
+    description: Credited recharge customers auto-initiate fund purchase → paid (balance debited, position increased).
+outcome_rules:
+  - round: 1
+    rules:
+      - { when: "hash < 2%",  then: reject, note: "recharge: BALANCE_INSUFFICIENT; purchase: QUOTA_EXCEEDED → policy abandons" }
+      - { when: "hash < 4%",  then: timeout → suspicious, note: "→ reconfirm-rule" }
+      - { when: otherwise,     then: ok }
+  - round: 2+
+    rules:
+      - { when: "hash < 10%", then: timeout → suspicious }
+      - { when: otherwise,    then: ok }
+    note: Round 2+ only contains round-1 timeouts that reconfirmed as NETWORK_ERROR.
+  - reconfirm:
+    rules:
+      - { when: "hash < 60%", then: VERIFIED_SUCCESS → joins settlement }
+      - { when: otherwise,    then: "NETWORK_ERROR → failure, suggestedAction RetrySameArea → auto-rebatch" }
+  - retry_budget:
+    rules:
+      - { when: "round 3 (retryCount >= maxRetries=2)", then: escalate-to-manual }
+  - account_update:
+    rules:
+      - { when: "1% transient fault", then: auto-retry once after 200ms }
+      - { when: "still failing",      then: park-in-exception-pool }
+chaining:
+  description: >
+    Credited recharge customers are grouped into purchase batches and enqueued;
+    the recharge batch job only completes after its purchase batches are queued.
+crash_demo:
+  description: >
+    The crash button stops a random running batch entity (journal kept); the
+    entity restarts on the next message and resumes from the cursor — the page
+    shows RECOVERING then continues from the breakpoint.

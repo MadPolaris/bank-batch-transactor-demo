@@ -1,0 +1,28 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: slice
+id: escalate-to-manual
+name: Escalate to Manual
+name_zh: 转人工
+description: >
+  A failed item that exhausted its retry budget (retryCount >= maxRetries).
+  Terminal: manual, with a ticket id. A human decides what happens next —
+  the engine stops trying.
+description_zh: >
+  用完重试预算的失败项（retryCount >= maxRetries）。终态 manual，带工单号，
+  后续由人工决定——引擎不再尝试。
+aggregate: customer-order
+parameters:
+  - { name: chain, type: string, description: Chain the order belongs to }
+  - { name: customerId, type: string, description: Customer identifier }
+  - { name: ticketId, type: string, description: "e.g. MAX_RETRY_EXCEEDED-TIMEOUT" }
+guards:
+  - description: routing decision is ManualIntervention (policy routing-decision)
+produces:
+  - order-escalated
+events:
+  order-escalated:
+    description: The order left the automatic flow with a manual ticket.
+    payload:
+      - { name: chain, type: string, description: Chain }
+      - { name: customerId, type: string, description: Customer identifier }
+      - { name: ticketId, type: string, description: Manual ticket id }

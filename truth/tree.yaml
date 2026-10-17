@@ -1,0 +1,45 @@
+# ═══ truth root — hand-editable ═══
+kind: tree
+id: bank-batch-transactor
+name: Bank Batch Transactor
+name_zh: 银行批量交易
+version: "0.1"
+description: >
+  Domain truth of the bank-batch-transactor-demo: batch recharge (充值) and
+  purchase (申购) transactions against an external bank system, executed as a
+  six-stage resumable chain with result classification, failure routing,
+  reconfirmation, and a terminal ledger.
+description_zh: >
+  银行批量交易演示的领域真源：对外部银行系统的批量充值与申购，
+  以六阶段可续跑链执行，带结果三分类、失败路由、可疑复核与终态账本。
+provenance:
+  extracted_from: MadPolaris/bank-batch-transactor-demo @ 864ecd3 (2026-10-17)
+  method: scenario A — read-only reverse engineering from source code
+  note: "format follows the metarch-truthsrc family, clean profile (no compiler-owned bookkeeping: no seq/order/keyOrder fields)"
+index:
+  aggregates:
+    - batch-chain-run
+    - customer-order
+  pipelines:
+    - batch-chain
+  value_objects:
+    - classification
+    - error-code-mapping
+    - next-step
+    - rebatch-policy
+    - ack-result
+    - poll-result
+    - batch-file
+    - batch-key
+    - demo-customer
+  policies:
+    - routing-decision
+    - reconfirm-rule
+    - business-closure
+  read_models:
+    - chain-stats
+    - exception-pool
+    - event-feed
+  scenarios:
+    - scale-demo
+    - console-demo

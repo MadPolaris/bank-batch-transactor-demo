@@ -47,16 +47,25 @@ object WebChain {
       }
     }
 
+  /**
+   * Web flavor of the single canonical bank-chain entity type.
+   *
+   * A2: there is exactly one entity type for a bank chain run. This registers
+   * `ChainExecutionActor.EntityTypeName` (not a second "m25-bank-web-chain" type):
+   * same entityId → same journal as the bare flavor, so a run can never exist
+   * in two divergent sharded states. The wrapper protocol (`Wrapped`/`SimulateCrash`)
+   * is web-only behavior on top of the identical journaled entity.
+   */
   def initSharding(
       sharding: ClusterSharding,
       pipelineFor: String => SubBatchPipeline[String, String],
       observerFor: String => RunObserver[ChainExecutionActor.BankState]
   )(implicit ec: ExecutionContext): EntityTypeKey[Command] = {
-    val typeKey = EntityTypeKey[Command]("m25-bank-web-chain")
+    val typeKey = EntityTypeKey[Command](ChainExecutionActor.EntityTypeName)
     sharding.init(
       akka.cluster.sharding.typed.scaladsl.Entity(typeKey)(ctx =>
         behavior(
-          PersistenceId("m25-bank-web-chain", ctx.entityId),
+          PersistenceId(ChainExecutionActor.EntityTypeName, ctx.entityId),
           pipelineFor(ctx.entityId),
           observerFor(ctx.entityId)
         )

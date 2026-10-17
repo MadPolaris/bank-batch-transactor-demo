@@ -1,0 +1,29 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: slice
+id: settle-purchase
+name: Settle Purchase
+name_zh: 申购成交
+description: >
+  A successfully classified purchase item settles: the customer's balance is
+  debited and the fund position increased. Idempotent by customerId.
+description_zh: >
+  分类成功的申购项成交：客户余额扣减、基金持仓增加。按 customerId 幂等。
+aggregate: customer-order
+parameters:
+  - { name: chain, type: string, description: '"purchase"' }
+  - { name: customerId, type: string, description: Customer identifier }
+  - { name: amount, type: number, description: Purchase amount }
+  - { name: fund, type: string, description: Fund name, e.g. 成长混合A }
+guards:
+  - description: order not already terminal (first write wins)
+  - description: account update succeeded (after at most one auto-retry)
+produces:
+  - order-paid
+events:
+  order-paid:
+    description: "The purchase settled: balance debited, fund position increased."
+    payload:
+      - { name: chain, type: string, description: '"purchase"' }
+      - { name: customerId, type: string, description: Customer identifier }
+      - { name: amount, type: number, description: Purchase amount }
+      - { name: fund, type: string, description: Fund name }

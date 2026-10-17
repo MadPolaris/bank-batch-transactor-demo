@@ -1,0 +1,31 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: slice
+id: simulate-crash
+name: Simulate Crash
+name_zh: 模拟宕机
+description: >
+  Demo-only command: stop the run's entity while keeping its journal. The next
+  message restarts the entity and PersistentMonarch resumes from the cursor —
+  completed stages are not re-run. This is how the web UI's crash button proves
+  crash-resilience live.
+description_zh: >
+  仅演示用命令：停掉 run 的实体，但保留 journal。下一条消息重启实体，
+  PersistentMonarch 从断点续跑——已完成的阶段不重做。Web UI 的宕机按钮
+  就是靠它现场证明崩溃恢复。
+aggregate: batch-chain-run
+parameters:
+  - name: runId
+    type: string
+    description: The running entity to kill.
+guards:
+  - description: demo surface only — not part of the production protocol
+produces:
+  - run-recovered
+events:
+  run-recovered:
+    description: >
+      The entity restarted and resumed from the journaled cursor; completedCount
+      stages were skipped.
+    payload:
+      - { name: runId, type: string, description: Run identifier }
+      - { name: completedCount, type: integer, description: Stages skipped on resume }

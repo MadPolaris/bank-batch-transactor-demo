@@ -1,0 +1,69 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: aggregate
+id: customer-order
+name: Customer Order
+name_zh: 客户订单
+description: >
+  One customer's order in one chain — one row of the terminal ledger. Every
+  (chain × customer) pair lands in exactly one terminal state; the first write
+  wins and later duplicates (rebatch re-runs, replays) are skipped. This is the
+  unit the web UI's "balanced" check reconciles against.
+description_zh: >
+  一条链里一个客户的一笔订单——终态账本的一行。每个（链 × 客户）有且只有
+  一个终态；第一次写入生效，重批重跑等重复写入会被跳过。Web UI 的
+  "balanced" 对账就是对着它算的。
+identity:
+  fields: [chain, customerId]
+  description: >
+    Idempotency key is customerId within a chain. (chain, customerId) is the
+    grain of the terminal ledger.
+state_slots:
+  - name: chain
+    type: string
+    description: "recharge or purchase"
+  - name: customerId
+    type: string
+    description: Customer identifier (deterministic UUID in the demo).
+  - name: terminalState
+    type: string
+    description: >
+      Exactly one of: recharge → credited | rejected | manual | except_pool;
+      purchase → paid | rejected | manual | except_pool. Unset while in flight.
+  - name: amount
+    type: number
+    description: Order amount.
+lifecycle:
+  - { from: in-flight, via: settle-recharge,        to: credited }
+  - { from: in-flight, via: settle-purchase,        to: paid }
+  - { from: in-flight, via: abandon-order,          to: rejected }
+  - { from: in-flight, via: escalate-to-manual,     to: manual }
+  - { from: in-flight, via: park-in-exception-pool, to: except_pool }
+  - { from: except_pool, via: replay-exception,     to: credited }
+  - { from: except_pool, via: replay-exception,     to: paid }
+  # A1 (arbitrated 2026-10-18): replay success is a legal transition
+  # except_pool → credited/paid (atomic compare-and-set). Money moves if and
+  # only if the ledger transitions — the three (money, ledger, feed) agree.
+invariants:
+  - id: exactly-once-terminal
+    description: >
+      First terminal write wins (putIfAbsent). A customer already terminal is
+      never settled again — rebatch re-runs and double classifications are
+      skipped by customerId.
+  - id: balanced-ledger
+    description: >
+      entered == inFlight + credited/paid + rejected + manual + except_pool,
+      per chain. The stats view asserts this.
+persistence:
+  mechanism: >
+    In-memory ledger (TerminalLedger), but it is a READ MODEL — rebuilt from
+    the batch-chain-run journals on service startup (LedgerRecovery).
+  rebuild: >
+    A3 (arbitrated 2026-10-18): on (re)start, the service reads the latest run's
+    entity journals (StageDone protobuf snapshots carry full classifications),
+    replays them through BankDecisions.decideTerminal — the same pure mapping
+    the live businessClosure uses, by construction — and restores terminal
+    states, the seen-set, and the exception pool. A service crash no longer
+    loses the ledger; the journal is the single source of truth.
+  note: >
+    Journals written before the A2 migration used the "m25-bank-web-chain"
+    type-key prefix and are not recovered (treated as a fresh start).

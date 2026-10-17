@@ -45,6 +45,16 @@ object ChainExecutionActor {
       observer = observer
     )
 
+  /** Canonical entity-type name. There is exactly ONE entity type for a bank chain run.
+    *
+    * `WebChain.initSharding` (web flavor: adds `SimulateCrash`) registers this same
+    * name; `ChainExecutionActor.initSharding` below is the bare flavor for non-web
+    * hosts. Never register both in one ActorSystem — Akka rejects the duplicate,
+    * which is the guard. A2: one entity type, one journal namespace, no divergent
+    * state for the same entityId.
+    */
+  val EntityTypeName: String = "m25-chain-executor"
+
   /** Cluster sharding bootstrap: entityId == runId, journal is per-entity. */
   def initSharding(
       sharding: ClusterSharding,
@@ -53,10 +63,10 @@ object ChainExecutionActor {
   )(implicit ec: ExecutionContext): EntityTypeKey[BankCommand] =
     PersistentMonarch.initSharding(
       sharding,
-      "m25-chain-executor",
+      EntityTypeName,
       entityId =>
         behavior(
-          PersistenceId("m25-chain-executor", entityId),
+          PersistenceId(EntityTypeName, entityId),
           pipelineFor(entityId),
           observerFor(entityId))
     )

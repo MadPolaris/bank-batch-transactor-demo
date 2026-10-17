@@ -1,0 +1,57 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: slice
+id: start-batch-run
+name: Start Batch Run
+name_zh: 启动批次运行
+description: >
+  Begin executing the six-stage chain for a batch. Carries the initial state
+  into the journal (RunStarted); a second start for the same run is rejected
+  so a batch can never execute twice.
+description_zh: >
+  启动一批 items 的六阶段链执行。初始状态随 RunStarted 进 journal；
+  同一个 run 的第二次启动会被拒绝，一批永远不会执行两次。
+aggregate: batch-chain-run
+parameters:
+  - name: runId
+    type: string
+    description: Unique run id; becomes the entity id and journal key.
+  - name: chainId
+    type: string
+    description: Chain + round + batch index, e.g. "recharge-r1-b3".
+  - name: items
+    type: string[]
+    description: Items encoded "chain:round:customerId".
+guards:
+  - description: runId not already active or finished (duplicate StartRun → Rejected)
+produces:
+  - run-started
+  - stage-completed
+  - run-completed
+  - run-failed
+events:
+  run-started:
+    description: The run began; the initial snapshot is journaled with it.
+    payload:
+      - { name: runId, type: string, description: Run identifier }
+      - { name: chainId, type: string, description: Chain/round/batch }
+      - { name: items, type: "string[]", description: "Encoded items" }
+      - { name: snapshot, type: bytes, description: Initial state snapshot (protobuf) }
+  stage-completed:
+    description: >
+      One stage finished cleanly. Carries the cursor (stage name), stage
+      metadata, and a full state snapshot — this is the resume point.
+    payload:
+      - { name: cursor, type: string, description: "Stage name, e.g. upload" }
+      - { name: metadata, type: map<string, string>, description: Stage-specific metadata }
+      - { name: snapshot, type: bytes, description: Full state snapshot (protobuf) }
+  run-completed:
+    description: All six stages finished; classifications are final.
+    payload:
+      - { name: runId, type: string, description: Run identifier }
+  run-failed:
+    description: A stage failed with a classified error and no interceptor resolved it.
+    payload:
+      - { name: runId, type: string, description: Run identifier }
+      - { name: cursor, type: string, description: Stage where it failed }
+      - { name: errorCode, type: string, description: "Classified code, e.g. ACK_TIMEOUT" }
+      - { name: detail, type: string, description: Human-readable detail }

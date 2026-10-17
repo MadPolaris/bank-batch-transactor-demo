@@ -1,0 +1,30 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: value-object
+id: demo-customer
+name: Demo Customer
+name_zh: 演示客户
+description: >
+  One simulated bank customer in the scale demo. Deterministic (UUID v3 from
+  the index), so reruns and breakpoint-resumes reproduce the same population.
+description_zh: >
+  规模演示中的一个模拟银行客户。确定性生成（按序号的 UUID v3），
+  重跑与断点续跑得到同样的人群。
+fields:
+  - { name: idx, type: integer, description: "0-based index" }
+  - { name: customerId, type: string, description: Deterministic UUID }
+  - { name: name, type: string, description: "Display name, e.g. 客户000123" }
+  - { name: amount, type: number, description: Order amount }
+  - { name: fund, type: string, description: "Fund for the purchase chain, e.g. 成长混合A" }
+item_encoding:
+  format: "chain:round:customerId"
+  description: >
+    How a batch item travels through the pipeline. The chain and round ride
+    along with the customer id so the single unified pipeline and observer can
+    serve both chains (protobuf needs strings — hence the encoding).
+  example: "recharge:1:3f2a…"
+chain_item:
+  description: Decoded item = customer + its chain and round.
+  fields:
+    - { name: customer, type: demo-customer, description: The customer }
+    - { name: chain, type: string, description: "recharge or purchase" }
+    - { name: round, type: integer, description: "1-based retry round" }

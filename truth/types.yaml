@@ -1,0 +1,62 @@
+# ═══ truth type vocabulary — hand-editable ═══
+# The small stable set of record kinds used by this tree.
+# One file = one typed record. The validator (tools/validate-tree.py)
+# enforces kind + required fields; humans own everything else.
+kind: types
+id: bank-truth-types
+name: Bank Truth Type Vocabulary
+description: >
+  The seven record kinds this tree uses. Borrowed from the metarch-truthsrc
+  family (aggregate / slice / policy / read-model / value-object) and extended
+  with pipeline + scenario, because this demo's heart is a stage queue and a
+  deterministic demo script — neither fits the workshop sticky-note vocabulary.
+types:
+  - kind: aggregate
+    file_suffix: aggregate.yaml
+    description: >
+      A consistency boundary with an identity, state slots, a lifecycle, and
+      invariants. Slices that mutate it live in its slices/ directory.
+    required: [kind, id, name, description, identity, state_slots]
+
+  - kind: slice
+    file_suffix: .slice.yaml
+    description: >
+      One behavior unit: a command with typed parameters, guards, and the
+      events it produces (each event carries its payload schema).
+    required: [kind, id, name, description, aggregate, parameters, produces, events]
+
+  - kind: pipeline
+    file_suffix: .pipeline.yaml
+    description: >
+      An ordered stage queue. Each stage declares what it reads, what it
+      writes, its failure codes, and the metadata it emits. The array order
+      IS the execution order.
+    required: [kind, id, name, description, stages]
+
+  - kind: value-object
+    file_suffix: .vo.yaml
+    description: >
+      A shared immutable domain type: either a flat field list or a variant
+      (ADT) list. No identity, no lifecycle.
+    required: [kind, id, name, description]
+
+  - kind: policy
+    file_suffix: .policy.yaml
+    description: >
+      A reactive domain rule: when trigger events fire, invoke these slices,
+      decided by an ordered rule table (first match wins).
+    required: [kind, id, name, description, triggers, invokes, rules]
+
+  - kind: read-model
+    file_suffix: .rm.yaml
+    description: >
+      A queryable projection served by the web UI: where it's served, what it
+      derives from, and each field's derivation.
+    required: [kind, id, name, description, served_by, fields]
+
+  - kind: scenario
+    file_suffix: .scenario.yaml
+    description: >
+      A deterministic demo script: scale, the chains involved, and the
+      outcome rules that make the demo reproducible.
+    required: [kind, id, name, description, scale, chains, outcome_rules]

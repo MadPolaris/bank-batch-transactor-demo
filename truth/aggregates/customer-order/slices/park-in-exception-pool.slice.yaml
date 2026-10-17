@@ -1,0 +1,28 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: slice
+id: park-in-exception-pool
+name: Park in Exception Pool
+name_zh: 进入人工异常池
+description: >
+  The account update (the real money movement) failed twice — once plus one
+  auto-retry. The order parks in the exception pool: terminal except_pool,
+  visible in the UI, waiting for a human to replay. Settlement did NOT happen.
+description_zh: >
+  账务更新（真正的资金变动）失败了两次——一次加一次自动重试。订单进入
+  人工异常池：终态 except_pool，在 UI 可见，等待人工重放。此时并未结算。
+aggregate: customer-order
+parameters:
+  - { name: chain, type: string, description: Chain the order belongs to }
+  - { name: customerId, type: string, description: Customer identifier }
+  - { name: reason, type: string, description: Why it parked, e.g. 账务更新两次失败 }
+guards:
+  - description: account update failed twice (initial + one auto-retry)
+produces:
+  - order-parked-in-exception-pool
+events:
+  order-parked-in-exception-pool:
+    description: The order waits in the exception pool for human replay.
+    payload:
+      - { name: chain, type: string, description: Chain }
+      - { name: customerId, type: string, description: Customer identifier }
+      - { name: reason, type: string, description: Park reason }

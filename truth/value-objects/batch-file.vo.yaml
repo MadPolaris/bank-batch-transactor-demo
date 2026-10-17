@@ -1,0 +1,33 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: value-object
+id: batch-file
+name: Batch File Artifacts
+name_zh: 批量文件制品
+description: >
+  The three file artifacts that flow through the chain: the generated batch
+  file, the upload receipt, and the external system's response file. These are
+  the per-stage state slots (see aggregate batch-chain-run).
+description_zh: >
+  流经链的三种文件制品：生成的批量文件、上传回执、外部系统的响应文件。
+  它们就是各阶段的状态槽位（见 aggregate batch-chain-run）。
+variants:
+  - name: GeneratedFile
+    description: The transfer file encoded from the batch items (written by file-gen).
+    fields:
+      - { name: localPath, type: string, description: Local path }
+      - { name: fileName, type: string, description: File name }
+      - { name: byteSize, type: integer, description: Size in bytes }
+      - { name: encoding, type: string, description: "Encoding/format, e.g. dat" }
+  - name: UploadReceipt
+    description: Proof the external system received the file (written by upload).
+    fields:
+      - { name: remotePath, type: string, description: Remote path }
+      - { name: bytesTransferred, type: integer, description: Bytes sent }
+      - { name: timestamp, type: integer, description: Upload time (epoch ms) }
+  - name: ResponseFile
+    description: The external system's processing result (written by poll).
+    fields:
+      - { name: localPath, type: string, description: Local path }
+      - { name: fileName, type: string, description: File name }
+      - { name: byteSize, type: integer, description: Size in bytes }
+      - { name: content, type: bytes, description: Raw content, parsed by parse }

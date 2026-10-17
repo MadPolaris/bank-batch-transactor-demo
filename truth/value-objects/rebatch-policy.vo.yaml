@@ -1,0 +1,41 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: value-object
+id: rebatch-policy
+name: Rebatch Policy
+name_zh: 重批策略
+description: >
+  Business parameters for failure routing: the retry budget, per-code action
+  overrides, and the default cooldown. Consumed by policy routing-decision.
+description_zh: >
+  失败路由的业务参数：重试预算、按错误码的动作覆盖、默认冷却。
+  被 policy routing-decision 消费。
+fields:
+  - name: maxRetries
+    type: integer
+    description: Beyond this many retries the item escalates to manual.
+    default: 3
+  - name: actionMap
+    type: map<string, next-step>
+    description: Error code → next step override (ref next-step).
+    default: {}
+  - name: defaultCooldown
+    type: duration
+    description: Delay before re-batching when nothing more specific applies.
+decision: >
+  For each failure, in order: (1) retryCount >= maxRetries →
+  ManualIntervention("MAX_RETRY_EXCEEDED-{code}"); (2) the failure's own
+  suggestedAction if present; (3) actionMap[code] if present;
+  (4) RetrySameArea(defaultCooldown).
+demo_policies:
+  - chain: recharge
+    maxRetries: 2
+    actionMap:
+      BALANCE_INSUFFICIENT: Scrap
+      NETWORK_ERROR: RetrySameArea(3s)
+    defaultCooldown: 3s
+  - chain: purchase
+    maxRetries: 2
+    actionMap:
+      QUOTA_EXCEEDED: Scrap
+      NETWORK_ERROR: RetrySameArea(3s)
+    defaultCooldown: 3s

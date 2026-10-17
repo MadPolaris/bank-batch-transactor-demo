@@ -1,0 +1,55 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: read-model
+id: chain-stats
+name: Chain Statistics
+name_zh: 链统计
+description: >
+  The reconciliation dashboard. Per chain it shows the terminal ledger
+  (entered / in-flight / terminal buckets) and asserts the balanced equation;
+  alongside it, flow counters for observation only (they count re-runs and
+  are NOT reconciled).
+description_zh: >
+  对账大盘。每条链展示终态账本（进入 / 在途 / 终态桶）并断言 balanced
+  等式；旁边是只供观察的过程流量计数（含重跑，不参与对账）。
+served_by: GET /api/bank-batch/state
+sources:
+  - customer-order
+  - batch-chain-run
+fields:
+  - name: scale
+    type: object
+    derivation: fixed demo config — customers 100000, batchSize 2000, batches 50, concurrency 6
+  - name: batches.running
+    type: integer
+    derivation: live batch entities
+  - name: batches.queued
+    type: integer
+    derivation: waiting batch jobs
+  - name: batches.done
+    type: integer
+    derivation: completed batch runs
+  - name: batches.recoveries
+    type: integer
+    derivation: crash-resume count
+  - name: per-chain.entered
+    type: integer
+    derivation: distinct (chain × customer) seen
+  - name: per-chain.inFlight
+    type: integer
+    derivation: entered − terminalCount
+  - name: per-chain.terminals
+    type: map
+    derivation: >
+      count by terminal state — recharge: credited/rejected/manual/except_pool;
+      purchase: paid/rejected/manual/except_pool
+  - name: per-chain.balanced
+    type: boolean
+    derivation: entered == inFlight + Σ terminals (asserted per chain)
+  - name: flow counters
+    type: map
+    derivation: >
+      total / ok / suspicious / reconfirmOk / networkRetry / accountRetry /
+      amount — observation only, include rebatch re-runs, not reconciled
+  - name: feed
+    type: string[]
+    derivation: last 40 human-readable event lines

@@ -59,6 +59,7 @@ lazy val web = (project in file("web"))
     libraryDependencies ++= akkaDeps ++ Seq(
       "net.imadz" %% "monarch-persistence" % "0.2",
       "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14",
+      "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion,
       guice,
       "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
     ),

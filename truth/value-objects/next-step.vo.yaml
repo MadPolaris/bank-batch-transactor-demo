@@ -1,0 +1,27 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: value-object
+id: next-step
+name: Next Step
+name_zh: 路由动作
+description: >
+  The four possible routing actions for a failed item, decided by policy
+  routing-decision. Process-manager vocabulary shared with the fab domain.
+description_zh: >
+  失败项的四种路由动作，由 policy routing-decision 决定。
+  与 fab 领域共用的 process-manager 词汇。
+variants:
+  - name: RetrySameArea
+    description: Retry in the same area after a delay.
+    fields:
+      - { name: delay, type: duration, description: Cooldown before re-batching }
+  - name: RouteToArea
+    description: Route to a different area, optionally with a recipe.
+    fields:
+      - { name: areaId, type: string, description: Target area }
+      - { name: recipeId, type: string, description: Optional recipe, may be absent }
+  - name: ManualIntervention
+    description: Needs a human; carries a ticket id.
+    fields:
+      - { name: ticketId, type: string, description: "e.g. MAX_RETRY_EXCEEDED-TIMEOUT" }
+  - name: Scrap
+    description: Abandon — terminal, no retry, no human.

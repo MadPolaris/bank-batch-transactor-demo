@@ -24,6 +24,10 @@ case class ChainItem(c: DemoCustomer, chain: String, round: Int)
 /** 一笔充值/申购请求。 */
 case class DemoCustomer(idx: Int, customerId: String, name: String, amount: Double, fund: String)
 
+/** 人工异常池条目：账务更新两次失败的单子在此登记，支持查询与人工重放。 */
+case class PoolEntry(chain: String, customerId: String, name: String,
+                     amount: Double, reason: String, at: Long)
+
 /**
  * 银行批量充值 + 申购演示（规模版）：100,000 客户 · 2,000/批 · 50 批 · 并发 6。
  *
@@ -63,7 +67,7 @@ class BankBatchDemoService @Inject()(
   }
   private lazy val customerById: Map[String, DemoCustomer] = customers.map(c => c.customerId -> c).toMap
   private def uuidOf(seed: String): String = java.util.UUID.nameUUIDFromBytes(seed.getBytes).toString
-  private def hash(s: String): Int = math.abs(s.hashCode)
+  private def hash(s: String): Int = BankDecisions.hash(s)
 
   private def sliceOf(index: Int): Vector[DemoCustomer] =
     customers.slice(index * BATCH_SIZE, (index + 1) * BATCH_SIZE)
@@ -83,11 +87,9 @@ class BankBatchDemoService @Inject()(
     }
   }
 
-  /** 查证结论：60% 确认成功，40% 网络类失败（建议自动重批）。 */
-  def reconfirmOf(chain: String, c: DemoCustomer): String = {
-    val v = hash(s"$chain-verify-${c.customerId}") % 100
-    if (v < 60) "VERIFIED_SUCCESS" else "NETWORK_ERROR"
-  }
+  /** 查证结论：60% 确认成功，40% 网络类失败（与恢复路径共用 `BankDecisions`，同一映射）。 */
+  def reconfirmOf(chain: String, c: DemoCustomer): String =
+    BankDecisions.reconfirmOf(chain, c.customerId)
 
   private def rejectCodeOf(chain: String): String =
     if (chain == "recharge") "BALANCE_INSUFFICIENT" else "QUOTA_EXCEEDED"
@@ -105,35 +107,26 @@ class BankBatchDemoService @Inject()(
   // 终态账本：每笔单子（链 × 客户）有且只有一个终态
   //   recharge: credited / rejected / manual / except_pool
   //   purchase: paid     / rejected / manual / except_pool
-  // 幂等键 = customerId：重复的账务更新/重复的分类一律跳过（putIfAbsent 只落一次）。
+  // 见 TerminalLedger：putIfAbsent 首次写入（exactly-once）；
+  // 唯一允许的迁移是人工重放 except_pool → credited/paid（A1）。
   // ====================================================================
-  private val seenCustomers = new ConcurrentHashMap[String, ConcurrentHashMap[String, java.lang.Boolean]]()
-  private val terminalStates = new ConcurrentHashMap[String, ConcurrentHashMap[String, String]]()
+  private[bank] val ledger = new TerminalLedger((chain, state) => inc(s"${chain}_t_$state"))
 
   private def markSeen(chain: String, c: DemoCustomer): Unit =
-    seenCustomers.computeIfAbsent(chain, _ => new ConcurrentHashMap[String, java.lang.Boolean]())
-      .putIfAbsent(c.customerId, java.lang.Boolean.TRUE)
-  private def enteredOf(chain: String): Int =
-    Option(seenCustomers.get(chain)).map(_.size()).getOrElse(0)
-  private def terminalCount(chain: String): Int =
-    Option(terminalStates.get(chain)).map(_.size()).getOrElse(0)
-  private def inFlightOf(chain: String): Int = math.max(0, enteredOf(chain) - terminalCount(chain))
+    ledger.markSeen(chain, c.customerId)
+  private def enteredOf(chain: String): Int = ledger.enteredOf(chain)
+  private def terminalCount(chain: String): Int = ledger.terminalCount(chain)
+  private def inFlightOf(chain: String): Int = ledger.inFlightOf(chain)
   private def isTerminal(chain: String, c: DemoCustomer): Boolean =
-    Option(terminalStates.get(chain)).exists(_.containsKey(c.customerId))
+    ledger.isTerminal(chain, c.customerId)
   /** 终态只落一次；返回是否为新落终态（首次才累加终态计数）。 */
-  private def setTerminal(chain: String, c: DemoCustomer, state: String): Boolean = {
-    val fresh = terminalStates.computeIfAbsent(chain, _ => new ConcurrentHashMap[String, String]())
-      .putIfAbsent(c.customerId, state) == null
-    if (fresh) inc(s"${chain}_t_$state")
-    fresh
-  }
+  private def setTerminal(chain: String, c: DemoCustomer, state: String): Boolean =
+    ledger.setTerminal(chain, c.customerId, state)
 
   // ====================================================================
   // 人工异常池：账务更新两次失败的单子在此登记，支持查询与人工重放
   // ====================================================================
-  case class PoolEntry(chain: String, customerId: String, name: String,
-                       amount: Double, reason: String, at: Long)
-  private val exceptionPool = new ConcurrentHashMap[String, PoolEntry]()
+  private[bank] val exceptionPool = new ConcurrentHashMap[String, PoolEntry]()
 
   def exceptionList: Seq[PoolEntry] = exceptionPool.values().asScala.toSeq
     .sortBy(-_.at)
@@ -147,28 +140,40 @@ class BankBatchDemoService @Inject()(
       .map(_.count(identity))
   }
 
-  /** 人工重放：运维确认后跳过故障注入直接重试账务；成功则落入成功终态。 */
+  /** 人工重放：运维确认后跳过故障注入直接重试账务；成功则落入成功终态。
+    *
+    * A1：重放成功是合法的终态迁移 except_pool → credited/paid（原子 compare-and-set）。
+    * 先落账本再动钱：迁移失败说明账本与异常池不一致，此时不动钱、把条目放回，
+    * 保证"钱动账必动"——钱、账本、事件流三处永远互相印证。
+    */
   def replayException(chain: String, customerId: String): Future[Boolean] = {
     val key = s"$chain:$customerId"
     Option(exceptionPool.remove(key)) match {
       case Some(entry) =>
         val c = customerById(customerId)
         Future {
-          if (chain == "recharge") {
-            accountBalances.merge(c.customerId, c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
-            inc("recharge_amount", c.amount.toLong)
+          val target = if (chain == "recharge") "credited" else "paid"
+          if (!ledger.transitionTerminal(chain, c.customerId, "except_pool", target)) {
+            logger.warn(s"[bank-demo] 重放拒绝：$key 终态不是 except_pool（账本与异常池不一致），条目已放回")
+            exceptionPool.put(key, entry)
+            false
           } else {
-            accountBalances.merge(c.customerId, -c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
-            fundPositions.merge(c.customerId, c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
-            inc("purchase_amount", c.amount.toLong)
-            inc("purchase_position_amount", c.amount.toLong)
+            counter(s"${chain}_t_except_pool").addAndGet(-1)
+            if (chain == "recharge") {
+              accountBalances.merge(c.customerId, c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+              inc("recharge_amount", c.amount.toLong)
+            } else {
+              accountBalances.merge(c.customerId, -c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+              fundPositions.merge(c.customerId, c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+              inc("purchase_amount", c.amount.toLong)
+              inc("purchase_position_amount", c.amount.toLong)
+            }
+            inc(s"${chain}_account_ok")
+            publish("credited", Map("chain" -> chain, "orderNo" -> c.customerId,
+              "customer" -> c.name, "amount" -> c.amount.toString))
+            feedAdd(s"[重放] ${c.name} ${c.amount} 元 账务处理成功（人工重放）")
+            true
           }
-          setTerminal(chain, c, if (chain == "recharge") "credited" else "paid")
-          inc(s"${chain}_account_ok")
-          publish("credited", Map("chain" -> chain, "orderNo" -> c.customerId,
-            "customer" -> c.name, "amount" -> c.amount.toString))
-          feedAdd(s"[重放] ${c.name} ${c.amount} 元 账务处理成功（人工重放）")
-          true
         }
       case None => Future.successful(false)
     }
@@ -250,7 +255,8 @@ class BankBatchDemoService @Inject()(
       startJob(job)
     }
 
-  private def jobKey(job: BatchJob): String = s"bank-$runId-${job.chain}-r${job.round}-b${job.index}"
+  private def jobKey(job: BatchJob): String =
+    BatchKey.encode(runId, job.chain, job.round, job.index)
 
   private def startJob(job: BatchJob): Unit = {
     val items = job.items
@@ -273,9 +279,14 @@ class BankBatchDemoService @Inject()(
     }
   }
 
+  /**
+   * 解码批次键为 (chain, round, index)。A4：编码与解码都走 `BatchKey`，
+   * 之前这里按"无 runId"格式解析而 `jobKey` 带 runId，对真实 key 直接抛
+   * NumberFormatException；现在 decode 与 encode 是同一格式的互逆操作。
+   */
   private def parseBatchKey(key: String): (String, Int, Int) = {
-    val parts = key.stripPrefix("bank-").split("-")
-    (parts(0), parts(1).drop(1).toInt, parts(2).drop(1).toInt)
+    val (_, chain, round, index) = BatchKey.decode(key)
+    (chain, round, index)
   }
 
   /** 断点续跑与重批轮的确定性取数。items 编码为 "chain:round:customerId"（protobuf 要 String）。 */
@@ -340,7 +351,7 @@ class BankBatchDemoService @Inject()(
   private val latestSnapshots = new ConcurrentHashMap[String, ChainExecutionActor.BankState]()
 
   private def chainOfBatchId(batchId: String): String =
-    batchId.stripPrefix("bank-").takeWhile(_ != '-')
+    BatchKey.chainOf(batchId)
 
   private val unifiedObserver = new RunObserver[ChainExecutionActor.BankState] with Logging {
     override def onStart(runId: String): Unit = {
@@ -387,17 +398,8 @@ class BankBatchDemoService @Inject()(
   // 批次收尾业务编排：查证 → 失败路由（重批/放弃/人工）→ 账务更新 → 充值链衔接申购链
   // ====================================================================
 
-  private val policies = Map(
-    "recharge" -> ReBatchPolicy(
-      maxRetries = 2,
-      actionMap = Map("BALANCE_INSUFFICIENT" -> NextStep.Scrap,
-        "NETWORK_ERROR" -> NextStep.RetrySameArea(3.seconds)),
-      defaultCooldown = 3.seconds),
-    "purchase" -> ReBatchPolicy(
-      maxRetries = 2,
-      actionMap = Map("QUOTA_EXCEEDED" -> NextStep.Scrap,
-        "NETWORK_ERROR" -> NextStep.RetrySameArea(3.seconds)),
-      defaultCooldown = 3.seconds))
+  /** 两条链的失败路由策略（与恢复路径共用 `BankDecisions.policies`，同一定义）。 */
+  private val policies: Map[String, ReBatchPolicy] = BankDecisions.policies
 
   private val routers: Map[String, PolicyBasedReBatchRouter[String]] = policies.map { case (k, p) => k -> new PolicyBasedReBatchRouter[String](p) }
 
@@ -503,8 +505,7 @@ class BankBatchDemoService @Inject()(
     // 4) 账务全部落定后：充值链把已入账(credited)客户衔接进申购链，本批才算跑完
     Future.sequence(accountOps :+ routeFuture).map { _ =>
       if (chain == "recharge") {
-        val credited = accountTargets.filter(c => "credited" == Option(terminalStates.get(chain))
-          .map(_.get(c.customerId)).map(_.toString).getOrElse(""))
+        val credited = accountTargets.filter(c => ledger.terminalStateOf(chain, c.customerId).contains("credited"))
         credited.grouped(BATCH_SIZE).toVector.foreach { group =>
           val idx = purchaseSeq.getAndIncrement()
           val items = group.toVector.map(c => s"purchase:1:${c.customerId}")
@@ -524,25 +525,65 @@ class BankBatchDemoService @Inject()(
   // ====================================================================
 
   private var webChainTypeKey: akka.cluster.sharding.typed.scaladsl.EntityTypeKey[WebChain.Command] = _
+  private var shardingInitialized = false
 
-  def initSharding(): Unit =
+  /** A3：若本 JVM 已启动新 run，之前发起的账本恢复完成时直接丢弃（旧运行数据）。 */
+  @volatile private var ledgerRecoveryStale = false
+
+  def initSharding(): Unit = synchronized {
+    if (shardingInitialized) return
+    shardingInitialized = true
     webChainTypeKey = WebChain.initSharding(sharding, _ => unifiedPipeline, _ => unifiedObserver)
+    // A3: 终态账本是读模型——服务（重）启时从 journal 重建最新一次运行的账本。
+    // 与 startRun 互斥：恢复完成时若本 JVM 已起了新 run，结果直接丢弃。
+    LedgerRecovery.recoverLatest(system).foreach { recovered =>
+      synchronized {
+        if (!ledgerRecoveryStale) applyRecoveredLedger(recovered)
+        else logger.info("[bank-demo] 账本恢复结果已过期（新 run 已启动），丢弃")
+      }
+    }
+  }
+
+  /** A3：把从 journal 恢复的账本写回内存（终态 + 异常池重建 + 计数器）。 */
+  private def applyRecoveredLedger(r: LedgerRecovery.RecoveredLedger): Unit = {
+    if (r.terminals.isEmpty && r.seen.isEmpty) {
+      logger.info("[bank-demo] journal 中没有历史运行，账本为空启动")
+      return
+    }
+    r.seen.foreach { case (chain, cid) => ledger.markSeen(chain, cid) }
+    r.terminals.foreach { case ((chain, cid), state) =>
+      ledger.restoreTerminal(chain, cid, state)
+      if (state == "except_pool") {
+        customerById.get(cid).foreach { c =>
+          exceptionPool.put(s"$chain:$cid",
+            PoolEntry(chain, cid, c.name, c.amount, "账务更新两次失败", System.currentTimeMillis()))
+        }
+      }
+    }
+    logger.info(s"[bank-demo] 账本已从 journal 重建：${r.terminals.size} 笔终态 / ${r.seen.size} 笔已见")
+    feedAdd(s"[恢复] 从 journal 重建账本：${r.terminals.size} 笔终态，${r.seen.size} 笔已见")
+  }
 
   def startRun(): Map[String, Any] = {
     if (runningCount.get() > 0 || queue.size() > 0)
       return Map("started" -> false, "message" -> "已有批量任务在运行")
-    counters.clear()
-    queue.clear()
-    runningBatches.clear()
-    runningCount.set(0)
-    accountBalances.clear()
-    fundPositions.clear()
-    purchaseSeq.set(0)
-    feed.clear()
-    seenCustomers.clear()
-    terminalStates.clear()
-    latestSnapshots.clear()
-    runId = java.util.UUID.randomUUID().toString.take(8)
+    synchronized {
+      counters.clear()
+      queue.clear()
+      runningBatches.clear()
+      runningCount.set(0)
+      accountBalances.clear()
+      fundPositions.clear()
+      purchaseSeq.set(0)
+      feed.clear()
+      ledger.clear()
+      exceptionPool.clear()
+      latestSnapshots.clear()
+      // A3: 新 run 开始——之前发起的账本恢复若此时才完成，直接丢弃（旧运行数据）。
+      // 异常池也清空：新 run 的 10 万客户会重新走完整流程，旧条目已过期。
+      ledgerRecoveryStale = true
+      runId = java.util.UUID.randomUUID().toString.take(8)
+    }
     customers // 触发初始化
     (0 until TOTAL_BATCHES).foreach(i => enqueue(BatchJob("recharge", 1, i, itemsFor("recharge", 1, i))))
     publish("run-started", Map("customers" -> TOTAL_CUSTOMERS.toString,
@@ -575,8 +616,7 @@ class BankBatchDemoService @Inject()(
     import play.api.libs.json._
     val entered = enteredOf(chain)
     val inFlight = inFlightOf(chain)
-    val terminals = Option(terminalStates.get(chain))
-      .map(_.values().asScala.groupBy(identity).map { case (k, vs) => k -> vs.size }).getOrElse(Map.empty)
+    val terminals = ledger.histogram(chain)
     def t(state: String): Long = terminals.getOrElse(state, 0).toLong
     Json.obj(
       "label" -> label,

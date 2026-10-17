@@ -1,0 +1,36 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: slice
+id: replay-exception
+name: Replay Exception
+name_zh: 人工重放
+description: >
+  A human reviewed a parked order and replays it: the pool entry is removed
+  and the account update is retried WITHOUT fault injection, so the money does
+  move. A1 (arbitrated 2026-10-18): replay success is a legal terminal
+  transition except_pool → credited (recharge) / paid (purchase), applied as an
+  atomic compare-and-set BEFORE the money moves. If the ledger is not
+  except_pool, the replay is refused, the money is untouched, and the pool
+  entry is restored — money, ledger, and event feed always agree.
+description_zh: >
+  人工复核被搁置的订单后重放：异常池条目移除，账务更新重试时不再注入故障，
+  资金确实会动。A1（2026-10-18 仲裁）：重放成功是合法的终态迁移
+  except_pool → credited（充值）/ paid（申购），以原子 compare-and-set 在
+  动钱之前先落账本。若账本不是 except_pool，重放被拒绝、钱不动、条目放回——
+  钱、账本、事件流三处永远一致。
+aggregate: customer-order
+parameters:
+  - { name: chain, type: string, description: Chain the order belongs to }
+  - { name: customerId, type: string, description: Customer identifier }
+guards:
+  - description: order is currently in except_pool
+  - description: human confirmed (one-click replay in the UI)
+produces:
+  - exception-replayed
+events:
+  exception-replayed:
+    description: The pooled order settled after human replay.
+    payload:
+      - { name: chain, type: string, description: Chain }
+      - { name: customerId, type: string, description: Customer identifier }
+      - { name: moneyMoved, type: boolean, description: "true — replay always moves the money (no fault injection)" }
+      - { name: terminalTransition, type: string, description: '"except_pool → credited" (recharge) or "except_pool → paid" (purchase) — atomic, before the money moves' }

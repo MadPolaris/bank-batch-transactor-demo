@@ -1,0 +1,26 @@
+# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+kind: read-model
+id: event-feed
+name: Live Event Feed
+name_zh: 实时事件流
+description: >
+  The WebSocket stream the demo page renders live: every run/chain lifecycle
+  transition publishes a typed frame. This is the demo's observable behavior —
+  an agent re-scaffolding the UI needs exactly these frame types.
+description_zh: >
+  演示页实时渲染的 WebSocket 流：每次运行/链的生命周期变化都发布一个
+  类型化帧。这是演示的可观察行为——重搭 UI 的 agent 需要的正是这些帧类型。
+served_by: WS /ws/bank-batch/events
+sources:
+  - batch-chain-run
+  - customer-order
+fields:
+  - name: frame
+    type: object
+    derivation: "{seq, type, data} JSON per frame"
+  - name: frame types
+    type: string[]
+    derivation: >
+      run-started · job-start · batch-started · stage-done · stage-failed ·
+      batch-completed · batch-failed · recovering · credited · progress · crash
+      — the complete vocabulary the page subscribes to
