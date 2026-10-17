@@ -6,7 +6,7 @@ ThisBuild / versionScheme := Some("early-semver")
 
 licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
 
-ThisBuild / version := "0.1.0"
+ThisBuild / version := "0.2"
 
 val akkaVersion = "2.6.20"
 val AkkaProjectionVersion = "1.2.5"
@@ -52,8 +52,8 @@ publish / skip := true
 enablePlugins(JavaAppPackaging)
 
 libraryDependencies ++= Seq(
-  "net.imadz" %% "common-core" % "0.1.0",
-  "net.imadz" %% "monarch-core" % "0.1.0",
+  "net.imadz" %% "common-core" % "0.2",
+  "net.imadz" %% "monarch-core" % "0.2",
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
