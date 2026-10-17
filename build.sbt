@@ -54,7 +54,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test,
-  "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % Test,
+  "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14" % Test,
   "org.scalatest" %% "scalatest" % "3.2.15" % Test,
   "ch.qos.logback" % "logback-classic" % "1.4.5" % Test
 )
