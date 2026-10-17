@@ -1,4 +1,4 @@
-ThisBuild / organization := "io.github.madpolaris"
+ThisBuild / organization := "net.imadz"
 ThisBuild / organizationName := "MadPolaris"
 ThisBuild / organizationHomepage := Some(url("https://github.com/MadPolaris"))
 ThisBuild / scalaVersion := "2.13.14"
@@ -52,8 +52,8 @@ publish / skip := true
 enablePlugins(JavaAppPackaging)
 
 libraryDependencies ++= Seq(
-  "io.github.madpolaris" %% "common-core" % "0.1.0",
-  "io.github.madpolaris" %% "monarch-core" % "0.1.0",
+  "net.imadz" %% "common-core" % "0.1.0",
+  "net.imadz" %% "monarch-core" % "0.1.0",
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
