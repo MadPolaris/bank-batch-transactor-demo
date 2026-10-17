@@ -1,11 +1,12 @@
-ThisBuild / organization := "net.imadz"
+ThisBuild / organization := "io.github.madpolaris"
 ThisBuild / organizationName := "MadPolaris"
 ThisBuild / organizationHomepage := Some(url("https://github.com/MadPolaris"))
 ThisBuild / scalaVersion := "2.13.14"
-ThisBuild / version := "0.1.0"
 ThisBuild / versionScheme := Some("early-semver")
 
 licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+
+ThisBuild / version := "0.1.0"
 
 val akkaVersion = "2.6.20"
 val AkkaProjectionVersion = "1.2.5"
@@ -45,9 +46,14 @@ dependencyOverrides ++= Seq(
 // bank-batch-transactor-demo — financial batch transaction processing demo built on monarch-core.
 name := "bank-batch-transactor-demo"
 
+// Standalone demo: never published to Maven Central.
+publish / skip := true
+
+enablePlugins(JavaAppPackaging)
+
 libraryDependencies ++= Seq(
-  "net.imadz" %% "common-core" % "0.1.0",
-  "net.imadz" %% "monarch-core" % "0.1.0",
+  "io.github.madpolaris" %% "common-core" % "0.1.0",
+  "io.github.madpolaris" %% "monarch-core" % "0.1.0",
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
