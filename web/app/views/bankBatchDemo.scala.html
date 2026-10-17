@@ -1,0 +1,285 @@
+@()
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>银行批量充值+申购 · Monarch 双链（10 万客户规模）</title>
+<style>
+  :root { --ok:#1a7f37; --bad:#c62828; --warn:#b26a00; --run:#1565c0; --bg:#f5f7fa; --card:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Microsoft YaHei",system-ui,sans-serif; background:var(--bg); color:#222; }
+  .site-nav { background:#0d2b52; padding:10px 24px; display:flex; align-items:center; gap:8px; }
+  .site-nav .logo { font-weight:700; font-size:0.9rem; color:#fff; text-decoration:none; }
+  .site-nav nav { display:flex; gap:8px; margin-left:auto; align-items:center; }
+  .site-nav nav a, .site-nav .nav-dropdown-btn { color:rgba(255,255,255,0.85); text-decoration:none;
+    font-size:0.8rem; padding:4px 10px; border-radius:4px; cursor:pointer; }
+  .site-nav nav a:hover, .site-nav .nav-dropdown-btn:hover { color:#fff; background:rgba(255,255,255,0.12); }
+  .site-nav .nav-dropdown { position:relative; }
+  .site-nav .nav-dropdown-menu { display:none; position:absolute; right:0; top:100%; background:#fff;
+    border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.18); padding:6px; min-width:230px; z-index:50; }
+  .site-nav .nav-dropdown:hover .nav-dropdown-menu { display:block; }
+  .site-nav .nav-dropdown-item { display:flex; align-items:center; gap:6px; padding:6px 10px;
+    color:#222; text-decoration:none; font-size:0.8rem; border-radius:4px; }
+  .site-nav .nav-dropdown-item:hover { background:#f0f3f7; }
+  .milestone-badge { font-size:0.62rem; font-weight:700; padding:1px 6px; border-radius:3px;
+    background:#eef1f5; color:#555; }
+  .badge-m1 { background:#e8f0fe; color:#1565c0; } .badge-m2 { background:#f3e8ff; color:#7c3aed; }
+  .badge-m3 { background:#fdf3e7; color:#b26a00; }
+  header { background:#0d2b52; color:#fff; padding:14px 24px; border-top:1px solid rgba(255,255,255,0.08); }
+  header h1 { margin:0; font-size:20px; }
+  header p { margin:4px 0 0; font-size:13px; opacity:.85; }
+  main { max-width:1200px; margin:18px auto; padding:0 16px; display:grid; gap:16px; }
+  .card { background:var(--card); border-radius:10px; padding:16px 18px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .card h2 { margin:0 0 12px; font-size:15px; color:#0d2b52; border-left:4px solid #1565c0; padding-left:8px; }
+  .toolbar button { font-size:15px; padding:10px 22px; margin-right:10px; border:none; border-radius:8px; cursor:pointer; color:#fff; }
+  #btnStart { background:var(--ok); } #btnCrash { background:var(--bad); }
+  #btnStart:disabled, #btnCrash:disabled { background:#999; cursor:not-allowed; }
+  .bar { height:18px; background:#e3e8ee; border-radius:9px; overflow:hidden; margin-top:10px; }
+  .bar > div { height:100%; background:linear-gradient(90deg,#1565c0,#42a5f5); width:0%; transition:width .8s; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; }
+  .stat { background:#f6f8fb; border-radius:8px; padding:10px; text-align:center; }
+  .stat .num { font-size:22px; font-weight:bold; color:#0d2b52; }
+  .stat .lbl { font-size:12px; color:#667; margin-top:2px; }
+  .stat.warn .num { color:var(--warn); } .stat.bad .num { color:var(--bad); } .stat.ok .num { color:var(--ok); }
+  .chain h3 { margin:0 0 8px; font-size:13px; color:#555; }
+  .ledger { background:#0f1720; color:#9fe19f; font-family:Consolas,monospace; font-size:12px;
+            height:200px; overflow-y:auto; padding:10px 12px; border-radius:8px; white-space:pre-wrap; line-height:1.7; }
+  .banner { padding:10px 14px; border-radius:8px; font-size:14px; display:none; margin-bottom:12px; }
+  .banner.recovering { display:block; background:#fff3e0; color:#b26a00; border:1px solid #ffcc80; }
+  .banner.done { display:block; background:#e6f4ea; color:#1a7f37; border:1px solid #a5d6a7; }
+  .hint { font-size:12px; color:#888; margin-top:6px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="site-nav">
+  <a href="/" class="logo">Reactive MES Kernel</a>
+  <nav>
+    <a href="/">首页</a>
+    <div class="nav-dropdown">
+      <span class="nav-dropdown-btn">里程碑 ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/m1">M1 · Saga TCC 协调器</a>
+        <a href="/m2">M2 · 流批 DAG 引擎</a>
+        <a href="/m3">M3 · 自愈工序编排</a>
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <span class="nav-dropdown-btn">实战演示 ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/saga">M1 · Saga 演示场</a>
+        <a href="/fab-demo/m35">M3.5 · Fab 自愈演示</a>
+        <a href="/bank-batch" style="font-weight:700;color:#16a34a">✓ 银行批量（当前）</a>
+      </div>
+    </div>
+    <a href="/bank-batch" style="color:#9fe19f;font-weight:600">Bank Batch</a>
+  </nav>
+</div>
+<header>
+  <h1>🏦 银行批量充值 + 基金申购 · Monarch 双链（规模演示）</h1>
+  <p>100,000 客户 · 每批 2,000 · 共 50 批 · 并发 6 —— 充值链（合作银行）到账后自动衔接申购链（基金公司）；两条链均支持宕机断点续跑与失败自动重批；账务更新含 1% 瞬时故障注入（自动重试 → 人工异常池）</p>
+</header>
+<main>
+  <div class="card toolbar">
+    <button id="btnStart" onclick="startRun()">🚀 启动全量（10 万客户 · 50 批）</button>
+    <button id="btnCrash" onclick="crash()" disabled>⚡ 随机宕机一批（看断点续跑）</button>
+    <span id="crashMsg" class="hint"></span>
+    <div class="banner" id="banner"></div>
+    <h2 style="margin-top:14px">批次进度</h2>
+    <div class="bar"><div id="batchBar"></div></div>
+    <div class="stats" style="margin-top:10px">
+      <div class="stat"><div class="num" id="bRunning">0</div><div class="lbl">处理中</div></div>
+      <div class="stat"><div class="num" id="bQueued">0</div><div class="lbl">排队中</div></div>
+      <div class="stat ok"><div class="num" id="bDone">0</div><div class="lbl">已完成</div></div>
+      <div class="stat warn"><div class="num" id="bRecovered">0</div><div class="lbl">宕机恢复次数</div></div>
+    </div>
+  </div>
+
+  <div class="card chain">
+    <h2>第一链 · 批量充值（合作银行 · 文件交换六工序）</h2>
+    <div class="stats">
+      <div class="stat"><div class="num" id="rc_entered">0</div><div class="lbl">处理客户</div></div>
+      <div class="stat warn"><div class="num" id="rc_inFlight">0</div><div class="lbl">在途</div></div>
+      <div class="stat ok"><div class="num" id="rc_credited">0</div><div class="lbl">已入账(终态)</div></div>
+      <div class="stat bad"><div class="num" id="rc_rejected">0</div><div class="lbl">放弃(终态)</div></div>
+      <div class="stat bad"><div class="num" id="rc_manual">0</div><div class="lbl">转人工(终态)</div></div>
+      <div class="stat bad"><div class="num" id="rc_exceptPool">0</div><div class="lbl">异常池(终态)</div></div>
+      <div class="stat warn"><div class="num" id="rc_suspicious">0</div><div class="lbl">超时·可疑(流量)</div></div>
+      <div class="stat ok"><div class="num" id="rc_reconfirmOk">0</div><div class="lbl">查证转成功(流量)</div></div>
+      <div class="stat warn"><div class="num" id="rc_rebatched">0</div><div class="lbl">已重批(流量)</div></div>
+      <div class="stat warn"><div class="num" id="rc_accountRetry">0</div><div class="lbl">入账重试(流量)</div></div>
+    </div>
+    <div class="hint" id="rc_reconcile">核对：待数据</div>
+  </div>
+
+  <div class="card chain">
+    <h2>第二链 · 基金申购（基金公司 · 自动衔接，充值到账即申购）</h2>
+    <div class="stats">
+      <div class="stat"><div class="num" id="pu_entered">0</div><div class="lbl">处理客户</div></div>
+      <div class="stat warn"><div class="num" id="pu_inFlight">0</div><div class="lbl">在途</div></div>
+      <div class="stat ok"><div class="num" id="pu_paid">0</div><div class="lbl">已扣款(终态)</div></div>
+      <div class="stat bad"><div class="num" id="pu_rejected">0</div><div class="lbl">放弃(终态)</div></div>
+      <div class="stat bad"><div class="num" id="pu_manual">0</div><div class="lbl">转人工(终态)</div></div>
+      <div class="stat bad"><div class="num" id="pu_exceptPool">0</div><div class="lbl">异常池(终态)</div></div>
+      <div class="stat warn"><div class="num" id="pu_suspicious">0</div><div class="lbl">超时·可疑(流量)</div></div>
+      <div class="stat ok"><div class="num" id="pu_reconfirmOk">0</div><div class="lbl">查证转成功(流量)</div></div>
+      <div class="stat warn"><div class="num" id="pu_rebatched">0</div><div class="lbl">已重批(流量)</div></div>
+      <div class="stat warn"><div class="num" id="pu_accountRetry">0</div><div class="lbl">扣款重试(流量)</div></div>
+    </div>
+    <div class="hint" id="pu_reconcile">核对：待数据</div>
+  </div>
+
+  <div class="card">
+    <h2>资金总览（各系统账目）</h2>
+    <div class="stats">
+      <div class="stat ok"><div class="num" id="amtRecharge">0</div><div class="lbl">充值入账总额（元）</div></div>
+      <div class="stat warn"><div class="num" id="amtPaid">0</div><div class="lbl">申购支付总额（元）</div></div>
+      <div class="stat"><div class="num" id="amtPosition">0</div><div class="lbl">基金持仓总额（元）</div></div>
+    </div>
+  </div>
+
+  <div class="card" id="exceptCard">
+    <h2>⚠️ 入账异常池（人工确认后一键重放）</h2>
+    <div class="stats" style="margin-bottom:10px">
+      <div class="stat bad"><div class="num" id="exceptCount">0</div><div class="lbl">异常单</div></div>
+      <div class="stat warn"><div class="num" id="retryCount">0</div><div class="lbl">自动重试成功</div></div>
+    </div>
+    <table>
+      <thead><tr><th>链</th><th>客户</th><th>金额</th><th>原因</th><th></th></tr></thead>
+      <tbody id="exceptRows"></tbody>
+    </table>
+    <button id="btnReplayAll" onclick="replayAll()" style="margin-top:10px;font-size:13px;padding:8px 18px;border:none;border-radius:6px;background:#b26a00;color:#fff;cursor:pointer;">🔁 重放全部异常单</button>
+    <span class="hint" id="replayMsg"></span>
+  </div>
+
+  <div class="card">
+    <h2>📜 事件流（最近 40 条）</h2>
+    <div class="ledger" id="ledger">（待启动）</div>
+    <p class="hint">⚡ 宕机注入随机命中一个运行中的批次：账本已保存 → sharding 重启实体 → 从断点续跑（已完成工序不重做），"宕机恢复次数" +1。</p>
+  </div>
+</main>
+
+<script>
+const wsUrl = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/bank-batch/events";
+const counterIds = ["rc_entered","rc_inFlight","rc_credited","rc_rejected","rc_manual","rc_exceptPool",
+  "rc_suspicious","rc_reconfirmOk","rc_rebatched","rc_accountRetry",
+  "pu_entered","pu_inFlight","pu_paid","pu_rejected","pu_manual","pu_exceptPool",
+  "pu_suspicious","pu_reconfirmOk","pu_rebatched","pu_accountRetry"];
+const terminalSum = c => (c.credited||0)+(c.paid||0)+(c.rejected||0)+(c.manual||0)+(c.exceptPool||0);
+
+function set(id, v) { document.getElementById(id).textContent = v; }
+function render(st) {
+  const b = st.batches || {};
+  set("bRunning", b.running || 0); set("bQueued", b.queued || 0);
+  set("bDone", b.done || 0); set("bRecovered", b.recoveries || 0);
+  const pct = st.scale ? Math.round(100 * (b.done || 0) / st.scale.batches) : 0;
+  document.getElementById("batchBar").style.width = pct + "%";
+  counterIds.forEach(id => {
+    const chain = id.startsWith("rc_") ? st.recharge : st.purchase;
+    if (chain) set(id, chain[id.slice(3)] || 0);
+    [["rc", "rc_reconcile"], ["pu", "pu_reconcile"]].forEach(([p, elId]) => {
+      const c = st[p];
+      if (c) document.getElementById(elId).textContent =
+        "核对：已入账/已扣款 " + (c.paid || 0) + " + 放弃 " + (c.rejected || 0) + " + 人工 " + (c.manual || 0)
+        + " + 异常池 " + (c.exceptPool || 0) + " = 处理客户 " + c.entered + (c.balanced ? "  ✓ 平" : " （在途 " + c.inFlight + "）");
+    });
+  });
+  const a = st.amounts || {};
+  set("amtRecharge", (a.rechargeCredited || 0).toLocaleString());
+  set("amtPaid", (a.purchasePaid || 0).toLocaleString());
+  set("amtPosition", (a.position || 0).toLocaleString());
+  const running = (b.running || 0) + (b.queued || 0);
+  if (running === 0 && (b.done || 0) > 0) {
+    banner("✅ 全量完成：" + (st.scale.customers) + " 客户 · " + (b.done) + " 批 · 充值入账 " + (a.rechargeCredited || 0).toLocaleString() + " 元 · 申购支付 " + (a.purchasePaid || 0).toLocaleString() + " 元", "done");
+    setButtons(false);
+  } else if (running > 0) {
+    setButtons(true);
+  }
+}
+function banner(text, cls) { const b = document.getElementById("banner"); b.textContent = text || ""; b.className = "banner " + (cls || ""); }
+function setButtons(running) {
+  document.getElementById("btnCrash").disabled = !running;
+  document.getElementById("btnStart").disabled = running;
+}
+function addFeed(line) { const el = document.getElementById("ledger"); if (el.textContent === "（待启动）") el.textContent = ""; el.textContent += line + "\n"; el.scrollTop = el.scrollHeight; }
+function applyFeed(lines) { (lines || []).forEach(addFeed); }
+
+function refreshState() {
+  fetch("/api/bank-batch/exceptions").then(r => r.json()).then(x => {
+    document.getElementById("exceptCount").textContent = x.count;
+    const tb = document.getElementById("exceptRows");
+    tb.innerHTML = "";
+    (x.entries || []).slice(0, 20).forEach(e => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${e.chain}</td><td>${e.name}</td><td>${e.amount}</td><td>${e.reason}</td>` +
+        `<td><button onclick="replayOne('${e.chain}','${e.customerId}')" style="font-size:11px;padding:3px 10px;cursor:pointer;">重放</button></td>`;
+      tb.appendChild(tr);
+    });
+    document.getElementById("exceptCard").style.display = x.count > 0 ? "block" : "none";
+  }).catch(() => {});
+  fetch("/api/bank-batch/state").then(r => r.json()).then(st => {
+    render(st); applyFeed(st.feed);
+    const running = ((st.batches || {}).running || 0) + ((st.batches || {}).queued || 0);
+    if (running > 0) setButtons(true); else if ((st.batches || {}).done > 0) setButtons(false);
+  }).catch(() => {});
+}
+function startRun() {
+  setButtons(true); document.getElementById("ledger").textContent = "";
+  banner("🚀 全量启动中：50 批将按并发 6 分批处理，充值到账自动衔接申购……", "recovering");
+  fetch("/api/bank-batch/start", {method: "POST"}).then(r => r.json()).then(j => {
+    if (j.started === false) { banner("⏸ " + (j.message || "已有任务在运行"), "recovering"); setButtons(false); }
+    else { refreshState(); }
+  });
+}
+function crash() {
+  fetch("/api/bank-batch/crash", {method: "POST"}).then(r => r.json()).then(j => {
+    document.getElementById("crashMsg").textContent = j.message || "";
+    if (j.crashed === false) document.getElementById("crashMsg").textContent = j.message || "没有运行中的批次";
+  });
+}
+function replayOne(chain, customerId) {
+  fetch(`/api/bank-batch/exceptions/${chain}/${customerId}/replay`, {method: "POST"})
+    .then(r => r.json()).then(() => { refreshState(); refreshExceptions(); });
+}
+function replayAll() {
+  fetch("/api/bank-batch/exceptions/replay", {method: "POST"})
+    .then(r => r.json()).then(j => { document.getElementById("replayMsg").textContent = "已重放 " + j.replayed + " 笔"; refreshExceptions(); });
+}
+function refreshExceptions() {
+  fetch("/api/bank-batch/exceptions").then(r => r.json()).then(x => {
+    document.getElementById("exceptCount").textContent = x.count;
+    const tb = document.getElementById("exceptRows");
+    tb.innerHTML = "";
+    (x.entries || []).slice(0, 20).forEach(e => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${e.chain}</td><td>${e.name}</td><td>${e.amount}</td><td>${e.reason}</td>` +
+        `<td><button onclick="replayOne('${e.chain}','${e.customerId}')" style="font-size:11px;padding:3px 10px;cursor:pointer;">重放</button></td>`;
+      tb.appendChild(tr);
+    });
+  }).catch(() => {});
+}
+setInterval(refreshExceptions, 3000);
+
+function connect() {
+  ws = new WebSocket(wsUrl);
+  ws.onmessage = ev => {
+    const f = JSON.parse(ev.data); const d = f.data || {};
+    switch (f.type) {
+      case "recovering":
+        banner("🔄 [" + (d.chain || "batch") + "] " + d.batchId + " 宕机恢复：前 " + d.completed + " 道不重做，断点续跑", "recovering"); break;
+      case "crash":
+        banner("⚡ [" + (d.chain || "batch") + "] " + d.batchId + " 已注入宕机，账本已保存……", "recovering"); break;
+      case "batch-completed":
+        addFeed("[" + d.chain + "] " + d.batchId + " 完成 ✅"); break;
+      case "rebatch-scheduled":
+        addFeed("[" + d.chain + "] 重批调度：" + JSON.stringify(d)); break;
+    }
+  };
+  ws.onclose = () => setTimeout(connect, 2000);
+  ws.onerror = () => ws.close();
+}
+setButtons(false); connect(); refreshState();
+setInterval(refreshState, 1500);
+</script>
+</body>
+</html>

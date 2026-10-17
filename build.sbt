@@ -4,68 +4,73 @@ ThisBuild / organizationHomepage := Some(url("https://github.com/MadPolaris"))
 ThisBuild / scalaVersion := "2.13.14"
 ThisBuild / versionScheme := Some("early-semver")
 
-licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
-
 ThisBuild / version := "0.2"
 
 val akkaVersion = "2.6.20"
-val AkkaProjectionVersion = "1.2.5"
-val ScalikeJdbcVersion = "3.5.0"
-val MongoPluginVersion = "3.0.8"
 
-resolvers ++= Seq(
+ThisBuild / resolvers ++= Seq(
   "Aliyun" at "https://maven.aliyun.com/repository/public/"
 )
 
-Compile / scalacOptions ++= Seq("-target:11", "-deprecation", "-feature", "-unchecked", "-Xlint")
-Compile / javacOptions ++= Seq("--release", "11")
+ThisBuild / scalacOptions ++= Seq("-target:11", "-deprecation", "-feature", "-unchecked", "-Xlint")
+ThisBuild / javacOptions ++= Seq("--release", "11")
 
-dependencyOverrides ++= Seq(
-  "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
-  "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
-  "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
-  "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
-  "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
-  "com.typesafe.akka" %% "akka-coordination" % akkaVersion,
-  "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
-  "com.typesafe.akka" %% "akka-pki" % akkaVersion,
-  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
-  "org.mongodb.scala" %% "mongo-scala-driver" % "4.3.4",
-  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-  "org.reactivemongo" %% "reactivemongo" % "1.1.0-noshaded-RC11",
-  "com.typesafe.play" %% "play-json" % "2.9.3",
-  "com.google.guava" % "guava" % "30.1.1-jre",
-  "com.typesafe.akka" %% "akka-http-core" % "10.2.7",
-  "org.slf4j" % "slf4j-api" % "2.0.4",
-  "org.scalatest" %% "scalatest" % "3.2.15" % Test,
-  "ch.qos.logback" % "logback-classic" % "1.4.5" % Test
-)
-
-// bank-batch-transactor-demo — financial batch transaction processing demo built on monarch-core.
-name := "bank-batch-transactor-demo"
-
-// Standalone demo: never published to Maven Central.
-publish / skip := true
-
-enablePlugins(JavaAppPackaging)
-
-libraryDependencies ++= Seq(
-  "net.imadz" %% "common-core" % "0.2",
-  "net.imadz" %% "monarch-core" % "0.2",
-  "net.imadz" %% "monarch-persistence" % "0.2",
+lazy val akkaDeps = Seq(
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
-  "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14",
-  "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14" % Test,
-  "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
-  "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test,
-  "org.scalatest" %% "scalatest" % "3.2.15" % Test,
-  "ch.qos.logback" % "logback-classic" % "1.4.5" % Test
+  "com.typesafe.akka" %% "akka-stream" % akkaVersion
 )
 
-Compile / PB.targets := Seq(
-  scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
-)
+// ------------------------------------------------------------------
+// core: 引擎（Monarch 六阶段链 + monarch-persistence 持久化 + protobuf 快照）
+// ------------------------------------------------------------------
+lazy val core = (project in file("core"))
+  .settings(
+    name := "bank-batch-transactor-core",
+    // Standalone demo: never published to Maven Central.
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "net.imadz" %% "common-core" % "0.2",
+      "net.imadz" %% "monarch-core" % "0.2",
+      "net.imadz" %% "monarch-persistence" % "0.2",
+      "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14",
+    ) ++ akkaDeps ++ Seq(
+      "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
+      "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test,
+      "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14" % Test,
+      "org.scalatest" %% "scalatest" % "3.2.15" % Test,
+      "ch.qos.logback" % "logback-classic" % "1.4.5" % Test
+    ),
+    Compile / PB.targets := Seq(
+      scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
+    )
+  )
+
+// ------------------------------------------------------------------
+// web: Play 网页（银行批量演示：页面 + WebSocket + API）
+// ------------------------------------------------------------------
+lazy val web = (project in file("web"))
+  .enablePlugins(PlayScala)
+  .dependsOn(core)
+  .settings(
+    name := "bank-batch-transactor-web",
+    publish / skip := true,
+    libraryDependencies ++= akkaDeps ++ Seq(
+      "net.imadz" %% "monarch-persistence" % "0.2",
+      "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14",
+      guice,
+      "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
+    ),
+    Compile / PB.targets := Seq(
+      scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
+    )
+  )
+
+// Root: aggregate only.
+lazy val root = (project in file("."))
+  .aggregate(core, web)
+  .settings(
+    name := "bank-batch-transactor-demo",
+    publish / skip := true
+  )

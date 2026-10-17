@@ -1,0 +1,19 @@
+# Routes — bank-batch-transactor-web
+# 银行流式批量交易演示：页面 + API + WebSocket
+
+# Demo page
+GET     /bank-batch                         controllers.BankBatchController.page
+
+# API
+GET     /api/bank-batch/state               controllers.BankBatchController.state
+POST    /api/bank-batch/start               controllers.BankBatchController.start
+POST    /api/bank-batch/crash               controllers.BankBatchController.crash
+GET     /api/bank-batch/exceptions          controllers.BankBatchController.exceptions
+POST    /api/bank-batch/exceptions/replay   controllers.BankBatchController.replayAll()
+POST    /api/bank-batch/exceptions/:chain/:customerId/replay controllers.BankBatchController.replayOne(chain, customerId)
+
+# WebSocket event stream
+GET     /ws/bank-batch/events               controllers.BankBatchController.events
+
+# Static assets
+GET     /assets/*file                       controllers.Assets.versioned(path="/public", file: Asset)

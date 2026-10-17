@@ -1,0 +1,623 @@
+package net.imadz.m25.bank
+
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.AskPattern._
+import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import akka.util.Timeout
+import javax.inject.{Inject, Singleton}
+import net.imadz.m25.component._
+import net.imadz.monarch.persistence.{PersistentMonarch, RunObserver}
+import play.api.Logging
+
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
+import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
+import scala.collection.mutable
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters._
+import scala.language.postfixOps
+import scala.util.{Failure, Success}
+
+/** 队列里的一个条目 = 客户 + 它所属的链与轮次（链信息随 items 走，一套流水线服务两条链）。 */
+case class ChainItem(c: DemoCustomer, chain: String, round: Int)
+
+/** 一笔充值/申购请求。 */
+case class DemoCustomer(idx: Int, customerId: String, name: String, amount: Double, fund: String)
+
+/**
+ * 银行批量充值 + 申购演示（规模版）：100,000 客户 · 2,000/批 · 50 批 · 并发 6。
+ *
+ * 两条链共用 monarch-core 的 Monarch 六阶段骨架（ChainExecutionActor 每批一个实体）：
+ *   - 充值链 recharge（合作银行）：充值文件交换六工序 → 成功项更新理财账户
+ *   - 申购链 purchase（基金公司）：充值到账客户自动发起申购 → 成功项扣减余额、增加基金持仓
+ *
+ * 剧本（确定性哈希，可复现）：
+ *   - 第 1 轮约 2% 拒绝（余额不足/额度超限 → 按策略放弃）、约 2% 超时（→ 可疑 → 查证：
+ *     60% 确认成功、40% 网络类失败 → 自动重批）；第 2 轮 90% 成功、10% 仍超时 → 第 3 轮
+ *     触发 maxRetries 上限 → 转人工工单。
+ *   - 账务更新（入账/扣款/持仓）注入 1% 瞬时故障 → 自动重试一次 → 仍失败进人工异常池。
+ */
+@Singleton
+class BankBatchDemoService @Inject()(
+    classicSystem: akka.actor.ActorSystem,
+    sharding: ClusterSharding,
+    implicit val mat: akka.stream.Materializer
+)(implicit ec: ExecutionContext) extends Logging {
+
+  implicit val system: ActorSystem[Nothing] =
+    akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps(classicSystem).toTyped
+  private implicit val askTimeout: Timeout = Timeout(30.seconds)
+
+  // ====================================================================
+  // 规模与客户
+  // ====================================================================
+  val TOTAL_CUSTOMERS = 100000
+  val BATCH_SIZE = 2000
+  val TOTAL_BATCHES = TOTAL_CUSTOMERS / BATCH_SIZE
+  val MAX_CONCURRENT_BATCHES = 6
+  private val FUNDS = Seq("成长混合A", "稳健增利B", "科技创新C")
+
+  lazy val customers: Vector[DemoCustomer] = (0 until TOTAL_CUSTOMERS).toVector.map { i =>
+    DemoCustomer(i, uuidOf(s"c-$i"), f"客户$i%06d",
+      100 + (hash(s"amt-$i") % 4900) + 0.5, FUNDS(i % FUNDS.size))
+  }
+  private lazy val customerById: Map[String, DemoCustomer] = customers.map(c => c.customerId -> c).toMap
+  private def uuidOf(seed: String): String = java.util.UUID.nameUUIDFromBytes(seed.getBytes).toString
+  private def hash(s: String): Int = math.abs(s.hashCode)
+
+  private def sliceOf(index: Int): Vector[DemoCustomer] =
+    customers.slice(index * BATCH_SIZE, (index + 1) * BATCH_SIZE)
+
+  // ====================================================================
+  // 确定性结果（同一客户/链/轮次永远同一结果，断点续跑与重算可复现）
+  // ====================================================================
+
+  /** OK / TIMEOUT / 拒绝码（recharge: BALANCE_INSUFFICIENT；purchase: QUOTA_EXCEEDED）。 */
+  def outcomeOf(chain: String, c: DemoCustomer, round: Int): String = {
+    val v = hash(s"$chain-${c.customerId}-r$round") % 100
+    val reject = if (chain == "recharge") "BALANCE_INSUFFICIENT" else "QUOTA_EXCEEDED"
+    if (round == 1) {
+      if (v < 2) reject else if (v < 4) "TIMEOUT" else "OK"
+    } else {
+      if (v < 10) "TIMEOUT" else "OK"
+    }
+  }
+
+  /** 查证结论：60% 确认成功，40% 网络类失败（建议自动重批）。 */
+  def reconfirmOf(chain: String, c: DemoCustomer): String = {
+    val v = hash(s"$chain-verify-${c.customerId}") % 100
+    if (v < 60) "VERIFIED_SUCCESS" else "NETWORK_ERROR"
+  }
+
+  private def rejectCodeOf(chain: String): String =
+    if (chain == "recharge") "BALANCE_INSUFFICIENT" else "QUOTA_EXCEEDED"
+
+  // ====================================================================
+  // 计数器（统计视图数据源）
+  // ====================================================================
+  private val counters = new ConcurrentHashMap[String, AtomicLong]()
+  private def counter(name: String): AtomicLong =
+    counters.computeIfAbsent(name, _ => new AtomicLong(0))
+  private def inc(name: String, by: Long = 1): Unit = counter(name).addAndGet(by)
+  def counterValue(name: String): Long = Option(counters.get(name)).map(_.get).getOrElse(0L)
+
+  // ====================================================================
+  // 终态账本：每笔单子（链 × 客户）有且只有一个终态
+  //   recharge: credited / rejected / manual / except_pool
+  //   purchase: paid     / rejected / manual / except_pool
+  // 幂等键 = customerId：重复的账务更新/重复的分类一律跳过（putIfAbsent 只落一次）。
+  // ====================================================================
+  private val seenCustomers = new ConcurrentHashMap[String, ConcurrentHashMap[String, java.lang.Boolean]]()
+  private val terminalStates = new ConcurrentHashMap[String, ConcurrentHashMap[String, String]]()
+
+  private def markSeen(chain: String, c: DemoCustomer): Unit =
+    seenCustomers.computeIfAbsent(chain, _ => new ConcurrentHashMap[String, java.lang.Boolean]())
+      .putIfAbsent(c.customerId, java.lang.Boolean.TRUE)
+  private def enteredOf(chain: String): Int =
+    Option(seenCustomers.get(chain)).map(_.size()).getOrElse(0)
+  private def terminalCount(chain: String): Int =
+    Option(terminalStates.get(chain)).map(_.size()).getOrElse(0)
+  private def inFlightOf(chain: String): Int = math.max(0, enteredOf(chain) - terminalCount(chain))
+  private def isTerminal(chain: String, c: DemoCustomer): Boolean =
+    Option(terminalStates.get(chain)).exists(_.containsKey(c.customerId))
+  /** 终态只落一次；返回是否为新落终态（首次才累加终态计数）。 */
+  private def setTerminal(chain: String, c: DemoCustomer, state: String): Boolean = {
+    val fresh = terminalStates.computeIfAbsent(chain, _ => new ConcurrentHashMap[String, String]())
+      .putIfAbsent(c.customerId, state) == null
+    if (fresh) inc(s"${chain}_t_$state")
+    fresh
+  }
+
+  // ====================================================================
+  // 人工异常池：账务更新两次失败的单子在此登记，支持查询与人工重放
+  // ====================================================================
+  case class PoolEntry(chain: String, customerId: String, name: String,
+                       amount: Double, reason: String, at: Long)
+  private val exceptionPool = new ConcurrentHashMap[String, PoolEntry]()
+
+  def exceptionList: Seq[PoolEntry] = exceptionPool.values().asScala.toSeq
+    .sortBy(-_.at)
+
+  def exceptionCount: Int = exceptionPool.size
+
+  /** 人工重放整个异常池（运维确认后一键处理）；返回成功条数。 */
+  def replayAllExceptions(): Future[Int] = {
+    val all = exceptionList
+    Future.sequence(all.map(e => replayException(e.chain, e.customerId)))
+      .map(_.count(identity))
+  }
+
+  /** 人工重放：运维确认后跳过故障注入直接重试账务；成功则落入成功终态。 */
+  def replayException(chain: String, customerId: String): Future[Boolean] = {
+    val key = s"$chain:$customerId"
+    Option(exceptionPool.remove(key)) match {
+      case Some(entry) =>
+        val c = customerById(customerId)
+        Future {
+          if (chain == "recharge") {
+            accountBalances.merge(c.customerId, c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+            inc("recharge_amount", c.amount.toLong)
+          } else {
+            accountBalances.merge(c.customerId, -c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+            fundPositions.merge(c.customerId, c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+            inc("purchase_amount", c.amount.toLong)
+            inc("purchase_position_amount", c.amount.toLong)
+          }
+          setTerminal(chain, c, if (chain == "recharge") "credited" else "paid")
+          inc(s"${chain}_account_ok")
+          publish("credited", Map("chain" -> chain, "orderNo" -> c.customerId,
+            "customer" -> c.name, "amount" -> c.amount.toString))
+          feedAdd(s"[重放] ${c.name} ${c.amount} 元 账务处理成功（人工重放）")
+          true
+        }
+      case None => Future.successful(false)
+    }
+  }
+
+  // ====================================================================
+  // 模拟核心账务系统（1% 瞬时故障 → 自动重试一次 → 人工异常池）
+  // ====================================================================
+  private val accountBalances = new ConcurrentHashMap[String, java.lang.Double]()
+  private val fundPositions = new ConcurrentHashMap[String, java.lang.Double]()
+
+  /** 充值入账 / 申购扣款+持仓。返回 false = 两次尝试均失败，已进人工异常池。 */
+  private def updateAccountGlitchy(ci: ChainItem): Future[Boolean] = {
+    def once(): Future[Boolean] =
+      if (hash(s"glitch-${ci.chain}-${ci.c.customerId}") % 100 < 1)
+        Future.failed(new RuntimeException("账务系统瞬时故障"))
+      else Future {
+        if (ci.chain == "recharge") {
+          accountBalances.merge(ci.c.customerId, ci.c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+          inc("recharge_amount", ci.c.amount.toLong)
+        } else {
+          accountBalances.merge(ci.c.customerId, -ci.c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+          fundPositions.merge(ci.c.customerId, ci.c.amount, (a, b) => java.lang.Double.valueOf(a.doubleValue + b.doubleValue))
+          inc("purchase_amount", ci.c.amount.toLong)
+          inc("purchase_position_amount", ci.c.amount.toLong)
+        }
+        true
+      }
+    once().recoverWith {
+      case _ => inc(s"${ci.chain}_account_retry"); akka.pattern.after(200.millis)(once())
+    }.recover {
+      case _ => inc(s"${ci.chain}_account_manual"); false
+    }
+  }
+
+  // ====================================================================
+  // 事件流（页面滚动显示，最多 40 条）
+  // ====================================================================
+  private val feed = new mutable.Queue[String]()
+  private def feedAdd(line: String): Unit = synchronized {
+    feed.enqueue(s"${java.time.LocalTime.now().withNano(0)}  $line")
+    if (feed.size > 40) feed.dequeue()
+  }
+  def feedSnapshot: List[String] = synchronized(feed.toList)
+
+  private val (hubSink, hubSource) =
+    akka.stream.scaladsl.MergeHub.source[String](256)
+      .toMat(akka.stream.scaladsl.BroadcastHub.sink[String](bufferSize = 1024))(akka.stream.scaladsl.Keep.both)
+      .run()(mat)
+  private val frameSeq = new AtomicLong(0)
+  private def publish(`type`: String, data: Map[String, String]): Unit = {
+    val json = BankBatchJson.frame(frameSeq.incrementAndGet(), `type`, data)
+    akka.stream.scaladsl.Source.single(json).runWith(hubSink)
+  }
+  def source: akka.stream.scaladsl.Source[String, _] = hubSource
+
+  // ====================================================================
+  // 批次队列与调度（限流并发；充值链收尾自动衔接申购链）
+  // ====================================================================
+  case class BatchJob(chain: String, round: Int, index: Int, items: Vector[String])
+
+  private val queue = new ConcurrentLinkedQueue[BatchJob]()
+  private val runningCount = new AtomicInteger(0)
+  private val runningBatches = new ConcurrentHashMap[String, BatchJob]()
+  private val purchaseSeq = new AtomicInteger(0)
+  private val purchaseItems = new ConcurrentHashMap[String, Vector[String]]()
+
+  /** 每次全量运行的唯一 id：实体名带 runId，journal 永不跨运行串台。 */
+  private var runId: String = "boot"
+
+  def enqueue(job: BatchJob): Unit = { queue.add(job); pump() }
+
+  private def pump(): Unit =
+    while (runningCount.get() < MAX_CONCURRENT_BATCHES) {
+      val job = queue.poll()
+      if (job == null) return
+      runningCount.incrementAndGet()
+      runningBatches.put(jobKey(job), job)
+      startJob(job)
+    }
+
+  private def jobKey(job: BatchJob): String = s"bank-$runId-${job.chain}-r${job.round}-b${job.index}"
+
+  private def startJob(job: BatchJob): Unit = {
+    val items = job.items
+    publish("job-start", Map("chain" -> job.chain, "round" -> job.round.toString,
+      "index" -> job.index.toString, "items" -> items.size.toString))
+    val entityId = jobKey(job)
+    val initial: ChainExecutionActor.BankState = BankChainState[String, String](
+      batchId = entityId,
+      chainId = s"${job.chain}-r${job.round}-b${job.index}",
+      items = items,
+      context = Map("batchId" -> entityId, "chainId" -> s"${job.chain}-r${job.round}-b${job.index}"))
+    val entityRef = sharding.entityRefFor(webChainTypeKey, entityId)
+    entityRef.ask[PersistentMonarch.RunReply](ref =>
+      WebChain.Wrapped(PersistentMonarch.StartRun(entityId, initial, ref))).foreach {
+      case PersistentMonarch.Accepted(_) => ()
+      case PersistentMonarch.Rejected(_, reason) =>
+        // 被拒（实体已完成/失败）必须释放并发槽，否则调度器死锁
+        logger.warn(s"[bank-demo] StartRun rejected (job=$job): $reason")
+        jobDone(job)
+    }
+  }
+
+  private def parseBatchKey(key: String): (String, Int, Int) = {
+    val parts = key.stripPrefix("bank-").split("-")
+    (parts(0), parts(1).drop(1).toInt, parts(2).drop(1).toInt)
+  }
+
+  /** 断点续跑与重批轮的确定性取数。items 编码为 "chain:round:customerId"（protobuf 要 String）。 */
+  def itemsFor(chain: String, round: Int, index: Int): Vector[String] = {
+    val slice = sliceOf(index)
+    val base: Vector[DemoCustomer] =
+      if (round == 1) slice
+      else slice.filter(c => outcomeOf(chain, c, 1) == "TIMEOUT" && reconfirmOf(chain, c) == "NETWORK_ERROR")
+    base.map(c => s"$chain:$round:${c.customerId}")
+  }
+
+  /** 从编码的 item 字符串还原 ChainItem。 */
+  private def decodeItem(encoded: String): ChainItem = {
+    val parts = encoded.split(":", 3)
+    ChainItem(customerById(parts(2)), parts(0), parts(1).toInt)
+  }
+
+  private def jobDone(job: BatchJob): Unit = {
+    runningBatches.remove(jobKey(job))
+    runningCount.decrementAndGet()
+    publish("progress", Map(
+      "running" -> runningCount.get().toString, "queued" -> queue.size().toString,
+      "done" -> counterValue("batches_done").toString))
+    pump()
+  }
+
+  // ====================================================================
+  // 统一流水线（链与轮次从 ChainItem / ctx 读取）+ 统一观察者
+  // ====================================================================
+
+  private def classifyOne(encoded: String): Classification[String] = {
+    val ci = decodeItem(encoded)
+    outcomeOf(ci.chain, ci.c, ci.round) match {
+      case "OK"      => net.imadz.m25.component.Success(ci.c.customerId, ci.c.customerId)
+      case "TIMEOUT" => net.imadz.m25.component.Suspicious(ci.c.customerId,
+        SuspiciousReason("TIMEOUT", "外部系统处理超时"))
+      case other     => net.imadz.m25.component.Failure(ci.c.customerId,
+        FailureReason(other, other, None))
+    }
+  }
+
+  private val unifiedPipeline: SubBatchPipeline[String, String] = {
+    def after[T](ms: Int)(f: => T): Future[T] = Future { Thread.sleep(ms); f }
+    SubBatchPipeline[String, String](
+      fileGen = (items, ctx) => after(120) {
+        val batchId = ctx.getOrElse("batchId", "?").toString
+        GeneratedFile(s"/tmp/$batchId.dat", s"$batchId.dat", items.size * 256L, "dat")
+      },
+      upload = (file, _) => after(120)(UploadReceipt(s"sftp://host/inbound/${file.fileName}", file.byteSize, System.currentTimeMillis())),
+      waitAck = (_, _) => after(100)(AckReceived),
+      pollResp = ctx => after(180) {
+        val batchId = ctx.getOrElse("batchId", "?").toString
+        val content = s"response-of-$batchId".getBytes
+        ResponseReady(ResponseFile(s"/tmp/resp-$batchId.dat", s"resp-$batchId.dat", content.length.toLong, content))
+      },
+      parse = (_, _) => after(120)(Seq("raw")),
+      classify = (_, items) => after(100)(items.map(classifyOne))
+    )
+  }
+
+  /** 最新快照缓存：onStageComplete 写入，onCompleted 取出做业务收尾（新 API 的 onCompleted 不带快照）。 */
+  private val latestSnapshots = new ConcurrentHashMap[String, ChainExecutionActor.BankState]()
+
+  private def chainOfBatchId(batchId: String): String =
+    batchId.stripPrefix("bank-").takeWhile(_ != '-')
+
+  private val unifiedObserver = new RunObserver[ChainExecutionActor.BankState] with Logging {
+    override def onStart(runId: String): Unit = {
+      val (chain, _, _) = parseBatchKey(runId)
+      publish("batch-started", Map("chain" -> chain, "batchId" -> runId, "items" -> "?"))
+    }
+    override def onStageComplete(cursor: String, metadata: Map[String, String],
+                                snapshot: ChainExecutionActor.BankState): Unit = {
+      latestSnapshots.put(snapshot.batchId, snapshot)
+      publish("stage-done", Map("chain" -> chainOfBatchId(snapshot.batchId), "cursor" -> cursor))
+    }
+    override def onStageFailed(cursor: String, detail: String): Unit =
+      publish("stage-failed", Map("cursor" -> cursor, "detail" -> detail))
+    override def onRecovery(runId: String, completedCount: Int): Unit = {
+      val chain = chainOfBatchId(runId)
+      inc("recoveries")
+      publish("recovering", Map("chain" -> chain, "batchId" -> runId, "completed" -> completedCount.toString))
+      feedAdd(s"[$runId] 宕机恢复：前 $completedCount 道不重做，从断点续跑")
+    }
+    override def onCompleted(runId: String): Unit = {
+      val (chain, round, index) = parseBatchKey(runId)
+      runningBatches.remove(jobKey(BatchJob(chain, round, index, Vector.empty)))
+      inc("batches_done")
+      publish("batch-completed", Map("chain" -> chain, "batchId" -> runId))
+      Option(latestSnapshots.remove(runId)).foreach { st =>
+        businessClosure(chain, round, index, st)
+      }
+    }
+    override def onFailed(runId: String, cursor: String, reason: String): Unit = {
+      val chain = chainOfBatchId(runId)
+      publish("batch-failed", Map("chain" -> chain, "batchId" -> runId, "phase" -> cursor, "reason" -> reason))
+      feedAdd(s"[$runId] 失败@$cursor：$reason")
+      latestSnapshots.remove(runId)
+      jobDoneByBatchId(runId)
+    }
+  }
+
+  private def jobDoneByBatchId(batchId: String): Unit = {
+    val (chain, round, index) = parseBatchKey(batchId)
+    jobDone(BatchJob(chain, round, index, Vector.empty))
+  }
+
+  // ====================================================================
+  // 批次收尾业务编排：查证 → 失败路由（重批/放弃/人工）→ 账务更新 → 充值链衔接申购链
+  // ====================================================================
+
+  private val policies = Map(
+    "recharge" -> ReBatchPolicy(
+      maxRetries = 2,
+      actionMap = Map("BALANCE_INSUFFICIENT" -> NextStep.Scrap,
+        "NETWORK_ERROR" -> NextStep.RetrySameArea(3.seconds)),
+      defaultCooldown = 3.seconds),
+    "purchase" -> ReBatchPolicy(
+      maxRetries = 2,
+      actionMap = Map("QUOTA_EXCEEDED" -> NextStep.Scrap,
+        "NETWORK_ERROR" -> NextStep.RetrySameArea(3.seconds)),
+      defaultCooldown = 3.seconds))
+
+  private val routers: Map[String, PolicyBasedReBatchRouter[String]] = policies.map { case (k, p) => k -> new PolicyBasedReBatchRouter[String](p) }
+
+  private def businessClosure(chain: String, round: Int, index: Int, state: ChainExecutionActor.BankState): Future[Unit] = {
+    val cs = state.classifications.getOrElse(Seq.empty)
+
+    val successes = cs.collect { case s: net.imadz.m25.component.Success[String] => s }
+    val suspicious = cs.collect { case s: net.imadz.m25.component.Suspicious[String] => s }
+    val directFailures = cs.collect { case f: net.imadz.m25.component.Failure[String] => f }
+    cs.collect {
+      case s: net.imadz.m25.component.Success[String]     => s.item
+      case s: net.imadz.m25.component.Suspicious[String]  => s.item
+      case f: net.imadz.m25.component.Failure[String]     => f.item
+    }.foreach(id => markSeen(chain, customerById(id.toString)))
+
+    // 过程流量指标（total/ok/suspicious 含重批轮的重跑，仅供观察；对账以下方终态为准）
+    inc(s"${chain}_total", cs.size.toLong)
+    inc(s"${chain}_ok", successes.size.toLong)
+    inc(s"${chain}_suspicious", suspicious.size.toLong)
+
+    // 1) 可疑 → 查证落定（60% 确认成功；40% 网络类失败 → 建议自动重批）
+    val (verifiedCustomers, confirmedFailures) = suspicious.map { s =>
+      val c = customerById(s.item.toString)
+      (c, reconfirmOf(chain, c))
+    }.partition(_._2 == "VERIFIED_SUCCESS") match {
+      case (verified, failed) =>
+        verified.foreach { case (c, _) =>
+          feedAdd(s"[${chainOfWord(chain)}·查证] ${c.name} 确认成功 → 转入成功")
+        }
+        (verified.map(_._1), failed.map { case (c, _) =>
+          feedAdd(s"[${chainOfWord(chain)}·查证] ${c.name} 外部系统拥堵 → 网络类失败，自动重批")
+          net.imadz.m25.component.Failure(c.customerId, net.imadz.m25.component.FailureReason(
+            "NETWORK_ERROR", "外部系统拥堵", Some(NextStep.RetrySameArea(3.seconds))))
+        })
+    }
+    inc(s"${chain}_reconfirm_ok", verifiedCustomers.size.toLong)
+    inc(s"${chain}_reconfirm_network", confirmedFailures.size.toLong)
+
+    // 2) 失败 → 路由决策（终态 rejected / manual；RetrySameArea → 保持在途，稍后重批）
+    val allFailures = directFailures ++ confirmedFailures
+    val routeFuture: Future[Unit] =
+      if (allFailures.isEmpty) Future.successful(())
+      else {
+        val policy = policies(chain)
+        val ctx = ProcessContext(currentAreaId = chain, retryCount = round - 1, originalBatchId = Some(s"b$index"))
+        routers(chain).route(allFailures, ctx).map { decisions =>
+          var needRebatch = false
+          var minDelay = policy.defaultCooldown
+          var retryItems = Vector.empty[String]
+          decisions.foreach { d =>
+            val c = customerById(d.item.toString)
+            d.nextStep match {
+              case NextStep.Scrap =>
+                if (setTerminal(chain, c, "rejected")) {
+                  inc(s"${chain}_rejected")
+                  feedAdd(s"[${chainOfWord(chain)}·放弃] ${c.name}：${d.reason}")
+                }
+              case NextStep.RetrySameArea(delay) =>
+                needRebatch = true
+                if (delay < minDelay) minDelay = delay
+              case NextStep.ManualIntervention(ticket) =>
+                if (setTerminal(chain, c, "manual")) {
+                  inc(s"${chain}_manual")
+                  feedAdd(s"[${chainOfWord(chain)}·人工] ${c.name} 工单 $ticket（重试上限）")
+                }
+              case NextStep.RouteToArea(area, _) =>
+                feedAdd(s"[${chain}] ${c.name} → 路由 $area")
+            }
+          }
+          // 整批只入队一次下一轮；重试名单 = 本轮 RetrySameArea 的单子
+          // （逐笔入队会产生成百上千个重复批 → 调度死锁）
+          if (needRebatch) {
+            val retryItems = decisions.collect {
+              case d if d.nextStep.isInstanceOf[NextStep.RetrySameArea] =>
+                s"$chain:${round + 1}:${d.item}"
+            }.toVector
+            classicSystem.scheduler.scheduleOnce(minDelay)(enqueue(BatchJob(chain, round + 1, index, retryItems)))
+          }
+        }
+      }
+
+    // 3) 成功项 + 查证成功项 → 账务更新（终态：credited/paid 或 except_pool）
+    //    幂等键 = customerId：已是终态的单子跳过账务（重批重跑不会重复入账）
+    val accountTargets = (successes.map(s => customerById(s.item.toString)) ++
+      verifiedCustomers).filterNot(c => isTerminal(chain, c))
+    val accountOps = accountTargets.map { c =>
+      updateAccountGlitchy(ChainItem(c, chain, round)).map { ok =>
+        if (ok) {
+          if (setTerminal(chain, c, if (chain == "recharge") "credited" else "paid")) {
+            inc(s"${chain}_account_ok")
+            if (chain == "recharge") feedAdd(s"[充值] ${c.name} +${c.amount} 元 已入账")
+            else feedAdd(s"[申购] ${c.name} ${c.amount} 元 已扣款，基金持仓 +${c.fund}")
+          }
+        } else if (setTerminal(chain, c, "except_pool")) {
+          inc(s"${chain}_account_manual")
+          exceptionPool.put(s"$chain:${c.customerId}",
+            PoolEntry(chain, c.customerId, c.name, c.amount, "账务更新两次失败", System.currentTimeMillis()))
+          feedAdd(s"[${chainOfWord(chain)}] ${c.name} 账务更新失败 → 人工异常池")
+        }
+      }
+    }
+
+    // 4) 账务全部落定后：充值链把已入账(credited)客户衔接进申购链，本批才算跑完
+    Future.sequence(accountOps :+ routeFuture).map { _ =>
+      if (chain == "recharge") {
+        val credited = accountTargets.filter(c => "credited" == Option(terminalStates.get(chain))
+          .map(_.get(c.customerId)).map(_.toString).getOrElse(""))
+        credited.grouped(BATCH_SIZE).toVector.foreach { group =>
+          val idx = purchaseSeq.getAndIncrement()
+          val items = group.toVector.map(c => s"purchase:1:${c.customerId}")
+          purchaseItems.put(s"purchase-b$idx", items)
+          enqueue(BatchJob("purchase", 1, idx, items))
+          feedAdd(s"[衔接] 充值到账 ${group.size} 笔 → 自动发起基金申购（purchase-b$idx）")
+        }
+      }
+      jobDone(BatchJob(chain, round, index, Vector.empty))
+    }
+  }
+
+  private def chainOfWord(chain: String): String = if (chain == "recharge") "充值" else "申购"
+
+  // ====================================================================
+  // Public API
+  // ====================================================================
+
+  private var webChainTypeKey: akka.cluster.sharding.typed.scaladsl.EntityTypeKey[WebChain.Command] = _
+
+  def initSharding(): Unit =
+    webChainTypeKey = WebChain.initSharding(sharding, _ => unifiedPipeline, _ => unifiedObserver)
+
+  def startRun(): Map[String, Any] = {
+    if (runningCount.get() > 0 || queue.size() > 0)
+      return Map("started" -> false, "message" -> "已有批量任务在运行")
+    counters.clear()
+    queue.clear()
+    runningBatches.clear()
+    runningCount.set(0)
+    accountBalances.clear()
+    fundPositions.clear()
+    purchaseSeq.set(0)
+    feed.clear()
+    seenCustomers.clear()
+    terminalStates.clear()
+    latestSnapshots.clear()
+    runId = java.util.UUID.randomUUID().toString.take(8)
+    customers // 触发初始化
+    (0 until TOTAL_BATCHES).foreach(i => enqueue(BatchJob("recharge", 1, i, itemsFor("recharge", 1, i))))
+    publish("run-started", Map("customers" -> TOTAL_CUSTOMERS.toString,
+      "batchSize" -> BATCH_SIZE.toString, "batches" -> TOTAL_BATCHES.toString))
+    feedAdd(s"全量启动：$TOTAL_CUSTOMERS 客户 · 每批 $BATCH_SIZE · 共 $TOTAL_BATCHES 批 · 并发 $MAX_CONCURRENT_BATCHES")
+    Map("started" -> true, "customers" -> TOTAL_CUSTOMERS, "batchSize" -> BATCH_SIZE, "batches" -> TOTAL_BATCHES)
+  }
+
+  def crashRandom(): Map[String, Any] = {
+    val keys = runningBatches.keySet().asScala.toList
+    if (keys.isEmpty) Map("crashed" -> false, "message" -> "当前没有运行中的批次")
+    else {
+      val pick = keys(hash(java.time.LocalTime.now().toString + keys.hashCode) % keys.size)
+      val job = runningBatches.get(pick)
+      // 宕机注入：停掉 entity（wrapper 连同内部 monarch 一起停），journal 保留；
+      // 分片在下一条消息时重启 entity，PersistentMonarch 从 journal 断点续跑。
+      sharding.entityRefFor(webChainTypeKey, pick) ! WebChain.SimulateCrash
+      publish("crash", Map("chain" -> job.chain, "batchId" -> pick, "reason" -> "演示按钮触发"))
+      feedAdd(s"[$pick] ⚡ 宕机注入：演示按钮触发（账本已保存，断点续跑）")
+      Map("crashed" -> true, "batchId" -> pick,
+        "message" -> s"已向运行中的批次注入宕机（${job.chain} r${job.round} b${job.index}），断点续跑即将开始")
+    }
+  }
+
+  // ====================================================================
+  // 统计快照
+  // ====================================================================
+
+  def chainStatsJson(chain: String, label: String): play.api.libs.json.JsValue = {
+    import play.api.libs.json._
+    val entered = enteredOf(chain)
+    val inFlight = inFlightOf(chain)
+    val terminals = Option(terminalStates.get(chain))
+      .map(_.values().asScala.groupBy(identity).map { case (k, vs) => k -> vs.size }).getOrElse(Map.empty)
+    def t(state: String): Long = terminals.getOrElse(state, 0).toLong
+    Json.obj(
+      "label" -> label,
+      "entered" -> entered,
+      "inFlight" -> inFlight,
+      "credited" -> t("credited"),
+      "paid" -> t("paid"),
+      "rejected" -> t("rejected"),
+      "manual" -> t("manual"),
+      "exceptPool" -> t("except_pool"),
+      "successTerminal" -> t(if (chain == "recharge") "credited" else "paid"),
+      "balanced" -> (entered == inFlight + t(if (chain == "recharge") "credited" else "paid") + t("rejected") + t("manual") + t("except_pool")),
+      // ---- 过程流量指标（观察用，不参与对账）----
+      "total" -> counterValue(s"${chain}_total"),
+      "ok" -> counterValue(s"${chain}_ok"),
+      "suspicious" -> counterValue(s"${chain}_suspicious"),
+      "reconfirmOk" -> counterValue(s"${chain}_reconfirm_ok"),
+      "networkRetry" -> counterValue(s"${chain}_reconfirm_network"),
+      "rebatched" -> counterValue(s"${chain}_rebatched"),
+      "accountRetry" -> counterValue(s"${chain}_account_retry"),
+      "amount" -> counterValue(s"${chain}_amount"))
+  }
+
+  def statsJson: String = {
+    import play.api.libs.json._
+    Json.stringify(Json.obj(
+      "scale" -> Json.obj(
+        "customers" -> TOTAL_CUSTOMERS, "batchSize" -> BATCH_SIZE,
+        "batches" -> TOTAL_BATCHES, "concurrency" -> MAX_CONCURRENT_BATCHES),
+      "batches" -> Json.obj(
+        "running" -> runningCount.get(), "queued" -> queue.size(),
+        "done" -> counterValue("batches_done"), "recoveries" -> counterValue("recoveries")),
+      "recharge" -> chainStatsJson("recharge", "充值链（合作银行）"),
+      "purchase" -> chainStatsJson("purchase", "申购链（基金公司）"),
+      "amounts" -> Json.obj(
+        "rechargeCredited" -> counterValue("recharge_amount"),
+        "purchasePaid" -> counterValue("purchase_amount"),
+        "position" -> counterValue("purchase_position_amount")),
+      "account" -> Json.obj(
+        "retry" -> (counterValue("recharge_account_retry") + counterValue("purchase_account_retry")),
+        "manual" -> (counterValue("recharge_account_manual") + counterValue("purchase_account_manual"))),
+      "feed" -> feedSnapshot))
+  }
+}
