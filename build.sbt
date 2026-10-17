@@ -54,12 +54,18 @@ enablePlugins(JavaAppPackaging)
 libraryDependencies ++= Seq(
   "net.imadz" %% "common-core" % "0.2",
   "net.imadz" %% "monarch-core" % "0.2",
+  "net.imadz" %% "monarch-persistence" % "0.2",
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
+  "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14",
+  "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14" % Test,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test,
-  "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.14" % Test,
   "org.scalatest" %% "scalatest" % "3.2.15" % Test,
   "ch.qos.logback" % "logback-classic" % "1.4.5" % Test
+)
+
+Compile / PB.targets := Seq(
+  scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
 )
