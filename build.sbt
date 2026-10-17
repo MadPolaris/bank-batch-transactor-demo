@@ -13,8 +13,7 @@ val ScalikeJdbcVersion = "3.5.0"
 val MongoPluginVersion = "3.0.8"
 
 resolvers ++= Seq(
-  "Aliyun" at "https://maven.aliyun.com/repository/public/",
-  "Huawei" at "https://repo.huaweicloud.com/repository/maven/"
+  "Aliyun" at "https://maven.aliyun.com/repository/public/"
 )
 
 Compile / scalacOptions ++= Seq("-target:11", "-deprecation", "-feature", "-unchecked", "-Xlint")
