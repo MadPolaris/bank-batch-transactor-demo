@@ -64,10 +64,17 @@ node bin/truthsrc.js roundtrip --tree <path-to>/truth   # ✅ roundtrip identity
   are `type: policy` notes, so `decompose` normalizes them to
   `kind: policy` atoms in `policies/` — they now live there as
   `policy-rf-…-38/39/40.policy.yaml` (roundtrip requirement; the
-  `inbox/10-policies/` dir is empty). All six policies share one
+  `inbox/10-policies/` dir is empty). **Dedupe (2026-10-18)**: the
+  three `inbox/10-policies/` notes (BatchBusinessClosure,
+  SuspiciousReconfirmation, FailureRoutingDecision) were condensed
+  restatements of the three original policies, so `policy-rf-…-38/39/40`
+  were true duplicates and have been removed; the originals
+  (`…-35/36/37`, richer: carry `id` + detailed `rules`) are canonical.
+  No other atom referenced the removed names, so no reference fixes were
+  needed. The six policies had shared one
   `origin.seq` counter for `(refining, reconstructed)`: inbox refining
   notes 0–34, then policies 35–40 (V2 uniqueness is per stage+board
-  across inbox + policies).
+  across inbox + policies); after the dedupe the counter runs 0–37.
 - **Value objects** (`value-objects/*.vo.yaml`): headers `kind`/`name`
   only; everything else into `payload` (`id`, `name_zh`, descriptions,
   `fields` with `dataType:`, `variants`, `algorithm`, `decision`,
