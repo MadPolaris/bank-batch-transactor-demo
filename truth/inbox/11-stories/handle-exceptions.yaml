@@ -1,0 +1,10 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: story
+name: HandleExceptionPool
+name_zh: 处理异常池
+description: 'As 运营人员: 一键重放异常池里的订单（单个或全部） — 把卡住的资金放行.'
+description_zh: 运营人员一键重放异常池里的订单（单个或全部），把卡住的资金放行。
+role: 运营人员
+goal: 一键重放异常池里的订单（单个或全部）
+benefit: 把卡住的资金放行

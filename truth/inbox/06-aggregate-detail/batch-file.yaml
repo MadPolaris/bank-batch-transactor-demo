@@ -1,0 +1,8 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: valueObject
+name: BatchFileArtifacts
+name_zh: 批量文件制品
+description: 'The three file artifacts: GeneratedFile (file-gen), UploadReceipt (upload), ResponseFile
+  (poll).'
+description_zh: 三种文件制品：批量文件（file-gen）、上传回执（upload）、响应文件（poll）。

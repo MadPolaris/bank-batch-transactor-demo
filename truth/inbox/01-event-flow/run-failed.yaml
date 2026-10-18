@@ -1,0 +1,14 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: event
+name: RunFailed
+name_zh: 运行失败
+description: A stage failed with a classified error and no recovery rule resolved it; the run stops instead
+  of silently continuing.
+description_zh: 某阶段带着已分类的错误失败且无救回规则兜住；运行停下，不静默继续。
+sequence: 5
+payload_fields:
+- 'runId: string'
+- 'stage: string — 出错的阶段'
+- 'errorCode: string — 如 ACK_TIMEOUT'
+- 'detail: string — 人可读的细节'

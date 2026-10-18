@@ -1,0 +1,11 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: messageFields
+name: RunStartedFields
+name_zh: 批次启动字段
+description: Fields carried by RunStarted.
+description_zh: RunStarted 携带的字段。
+fields:
+- 'runId: string — 本次运行标识'
+- 'chainId: string — 链/轮次/批次'
+- 'items: string[] — chain:round:customerId'

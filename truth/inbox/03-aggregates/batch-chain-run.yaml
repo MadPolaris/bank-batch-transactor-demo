@@ -1,0 +1,8 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: aggregate
+name: BatchChainRun
+name_zh: 批次链运行
+description: One execution of the six-stage batch chain for a single batch. One batch, one run — a second
+  start is refused.
+description_zh: 一批的六阶段链的一次执行。一批一次运行，重复启动被拒绝。

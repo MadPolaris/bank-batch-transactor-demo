@@ -1,0 +1,18 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: readModel
+name: ExceptionPool
+name_zh: 人工异常池
+description: Orders whose account update failed twice, waiting for human replay. Replay moves the money
+  and the ledger except_pool → credited/paid together.
+description_zh: 账务更新失败两次、等人工重放的订单。重放时资金与账本一起从 except_pool 变为 credited/paid。
+served_by:
+- GET /api/bank-batch/exceptions
+- POST /api/bank-batch/exceptions/replay
+sources:
+- customer-order
+fields:
+- 'count: integer ← 池大小'
+- entries[].chain ← 订单所在链
+- entries[].customerId ← 客户
+- entries[].name ← 展示名

@@ -1,0 +1,21 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: command
+name: StartBatchRun
+name_zh: 启动批次运行
+description: Begin executing the six-stage chain for a batch. The initial run state is recorded with the
+  start; a second start for the same batch is rejected.
+description_zh: 启动一批的六阶段链执行。初始运行状态随启动记下；同一批第二次启动被拒绝。
+triggers:
+- 'role: 运营人员'
+produces:
+- run-started
+- stage-completed
+- run-completed
+- run-failed
+parameters:
+- 'runId: string — 本次运行唯一标识'
+- 'chainId: string — 链+轮次+批次'
+- 'items: string[] — chain:round:customerId 编码'
+guards:
+- runId 未在跑也未完工（重复启动→拒绝）

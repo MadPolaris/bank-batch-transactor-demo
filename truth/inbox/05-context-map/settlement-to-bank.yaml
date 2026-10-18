@@ -1,0 +1,7 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: relation
+name: SettlementToPartnerBank
+name_zh: 批量结算上下文→外部银行系统
+description: 限界上下文级协作：批量结算上下文与外部银行/基金公司系统上下文之间只走文件交换——上传批量文件、等回执确认、轮询结果文件。账务直写不跨上下文边界；对方的确认与结果文件是本上下文一切后续动作的唯一输入。
+description_zh: 限界上下文级协作：批量结算上下文与外部银行/基金公司系统上下文之间只走文件交换——上传批量文件、等回执确认、轮询结果文件。账务直写不跨上下文边界；对方的确认与结果文件是本上下文一切后续动作的唯一输入。

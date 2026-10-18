@@ -1,0 +1,11 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: lineage
+name: CustomerGrain
+name_zh: 客户粒度血缘
+description: customerId travels inside items encoding → becomes the (chain × customer) grain of the terminal
+  ledger → the idempotency key that makes rebatch re-runs and replays skip already-terminal orders.
+description_zh: customerId 藏在 items 编码里 → 成为终态账本（链×客户）的粒度 → 幂等键，让重批重跑与重放跳过已终态订单。
+links:
+- items.customerId → ledger (chain, customerId)
+- customerId → exactly-once guard

@@ -1,0 +1,11 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: event
+name: OrderParkedInExceptionPool
+name_zh: 进入异常池
+description: The account update failed twice; the order waits in the exception pool for human replay.
+description_zh: 账务更新失败两次；订单进入异常池等待人工重放。
+sequence: 10
+payload_fields:
+- 'chain: string'
+- 'customerId: string'

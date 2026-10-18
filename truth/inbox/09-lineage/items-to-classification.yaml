@@ -1,0 +1,17 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: lineage
+name: ItemsToClassification
+name_zh: 条目→分类血缘
+description: items (chain:round:customerId) → file-gen encodes GeneratedFile → upload yields UploadReceipt
+  → wait-ack yields AckResult → poll yields ResponseFile → parse yields rawResults → classify maps each
+  raw result back to its item (by customerId) into Success/Failure/Suspicious.
+description_zh: items（chain:round:customerId）→ file-gen 编出批量文件 → upload 得回执 → wait-ack 得确认 → poll 得响应文件
+  → parse 得原始结果 → classify 按 customerId 把每条原始结果落回它的 item，进成功/失败/可疑三类。
+links:
+- items → generatedFile
+- generatedFile → receipt
+- receipt → ack
+- context → responseFile
+- responseFile → rawResults
+- rawResults × items → classifications

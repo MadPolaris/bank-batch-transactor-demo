@@ -1,0 +1,11 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: lineage
+name: AmountFlow
+name_zh: 金额流向血缘
+description: DemoCustomer.amount → order-credited/order-paid amount → chain-stats flow counters (observation
+  only).
+description_zh: 演示客户.amount → 入账/成交事件的 amount → 链统计的过程流量计数（仅观察）。
+links:
+- demo-customer.amount → order-credited.amount
+- order-credited.amount → chain-stats.amount

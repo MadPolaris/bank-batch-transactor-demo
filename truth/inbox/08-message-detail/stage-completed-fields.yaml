@@ -1,0 +1,10 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: messageFields
+name: StageCompletedFields
+name_zh: 阶段完成字段
+description: Fields carried by StageCompleted.
+description_zh: StageCompleted 携带的字段。
+fields:
+- 'stage: string — 阶段名（断点）'
+- 'outputInfo: map<string,string> — 阶段产出信息'

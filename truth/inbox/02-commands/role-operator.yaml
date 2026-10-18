@@ -1,0 +1,8 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: role
+name: Operator
+name_zh: 运营人员
+description: 'The human role: starts batch runs, watches the reconciliation dashboard, replays exception-pool
+  orders.'
+description_zh: 人的角色：启动批量跑批、看对账大盘、重放异常池订单。

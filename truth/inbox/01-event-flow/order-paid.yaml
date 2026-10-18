@@ -1,0 +1,14 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: event
+name: OrderPaid
+name_zh: 申购成交
+description: 'A successfully classified purchase item settled: balance debited, fund position increased.
+  Idempotent by customerId.'
+description_zh: 分类成功的申购项成交：余额扣减、基金持仓增加。按 customerId 幂等。
+sequence: 7
+payload_fields:
+- 'chain: string — purchase'
+- 'customerId: string'
+- 'amount: number'
+- 'fund: string — 如 成长混合A'

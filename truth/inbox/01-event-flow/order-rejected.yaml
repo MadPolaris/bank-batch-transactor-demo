@@ -1,0 +1,12 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: event
+name: OrderRejected
+name_zh: 订单放弃
+description: 'A failed item was routed to abandon: terminal, no retry, no human. First write wins.'
+description_zh: 失败项被路由为放弃：终态，不重试、不转人工。第一次写入生效。
+sequence: 8
+payload_fields:
+- 'chain: string'
+- 'customerId: string'
+- 'reason: string — 放弃原因'

@@ -1,0 +1,11 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: aggregateState
+name: BatchChainRunState
+name_zh: 批次链运行状态
+description: 'State slots of one run: batchId, chainId, items, context, generatedFile, receipt, ack, responseFile,
+  rawResults, classifications, lastStage. Per-stage slots are written by their stage (file-gen writes
+  generatedFile, upload writes receipt, wait-ack writes ack, poll writes responseFile, parse writes rawResults,
+  classify writes classifications).'
+description_zh: 一次运行的状态槽位：batchId、chainId、items、context、generatedFile、receipt、ack、responseFile、rawResults、classifications、lastStage。各阶段写自己的槽位（file-gen
+  写 generatedFile、upload 写 receipt、wait-ack 写 ack、poll 写 responseFile、parse 写 rawResults、classify 写 classifications）。

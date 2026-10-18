@@ -1,0 +1,8 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: valueObject
+name: NextStep
+name_zh: 路由动作
+description: 'Four routing actions for a failed item: RetrySameArea, RouteToArea, ManualIntervention,
+  Scrap.'
+description_zh: 失败项的四种路由动作：同区重试、换区、转人工、放弃。

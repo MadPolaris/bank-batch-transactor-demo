@@ -1,0 +1,15 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: command
+name: ParkInExceptionPool
+name_zh: 放入异常池
+description: 'The account update failed twice: park the order in the exception pool to wait for human
+  replay.'
+description_zh: 账务更新失败两次：订单进入异常池等待人工重放。
+triggers:
+- 'policy: 批次业务收尾'
+produces:
+- order-parked-in-exception-pool
+parameters:
+- 'chain: string'
+- 'customerId: string'

@@ -42,12 +42,46 @@ def load_types():
     return vocab
 
 
+def check_inbox():
+    """I1/I2 — inbox workshop-reconstruction notes.
+    Minimal gate: parses as YAML, carries the required note header,
+    event notes carry `sequence` (flow position, problem-space).
+    No cross-file contiguity checks — directory order (01–13) is canonical."""
+    inbox = ROOT / "inbox"
+    if not inbox.is_dir():
+        return
+    required = ["kind", "type", "name", "name_zh", "description", "description_zh"]
+    for p in sorted(inbox.rglob("*.yaml")):
+        rel = p.relative_to(ROOT)
+        if p.name == "README.md":
+            continue
+        try:
+            doc = yaml.safe_load(p.read_text())
+        except yaml.YAMLError as e:
+            err("I1", f"{rel}: YAML parse error: {e}")
+            continue
+        if not isinstance(doc, dict):
+            err("I1", f"{rel}: top level must be a mapping")
+            continue
+        if doc.get("kind") != "note":
+            err("I1", f"{rel}: inbox files must have kind: note")
+            continue
+        for f in required:
+            if f not in doc:
+                err("I2", f"{rel}: missing required note field {f!r}")
+        if doc.get("type") == "event" and "sequence" not in doc:
+            err("I2", f"{rel}: event note missing `sequence` (flow position)")
+
+
 def main():
     vocab = load_types()
+    check_inbox()
     atoms = []  # (path, doc)
     for p in sorted(ROOT.rglob("*.yaml")):
         if "tools" in p.parts:
             continue
+        if "inbox" in p.parts:
+            continue  # inbox notes are a separate face, checked by check_inbox()
         try:
             doc = yaml.safe_load(p.read_text())
         except yaml.YAMLError as e:

@@ -1,0 +1,9 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: messageFields
+name: RunCompletedFields
+name_zh: 批次跑完字段
+description: Fields carried by RunCompleted.
+description_zh: RunCompleted 携带的字段。
+fields:
+- 'runId: string'

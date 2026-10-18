@@ -1,0 +1,13 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: event
+name: OrderCredited
+name_zh: 充值入账
+description: 'A successfully classified recharge item settled: the customer''s account was credited. Idempotent
+  by customerId.'
+description_zh: 分类成功的充值项入账：客户账户增加金额。按 customerId 幂等。
+sequence: 6
+payload_fields:
+- 'chain: string — recharge'
+- 'customerId: string'
+- 'amount: number — 入账金额'

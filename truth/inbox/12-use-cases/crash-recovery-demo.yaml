@@ -1,0 +1,14 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: useCase
+name: CrashRecoveryDemo
+name_zh: 宕机恢复演示
+description: 'CrashRecoveryDemo: 点宕机按钮：进程停止、进度记录保留; 下一条指令重启进程; 运行从断点续跑，已完成阶段跳过.'
+description_zh: 宕机恢复演示：点宕机按钮：进程停止、进度记录保留；下一条指令重启进程；运行从断点续跑，已完成阶段跳过。
+preconditions:
+- 有运行中的批次
+steps:
+- 点宕机按钮：进程停止、进度记录保留
+- 下一条指令重启进程
+- 运行从断点续跑，已完成阶段跳过
+extensions: []

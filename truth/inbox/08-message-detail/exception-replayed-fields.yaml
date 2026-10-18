@@ -1,0 +1,12 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: messageFields
+name: ExceptionReplayedFields
+name_zh: 人工重放字段
+description: Fields carried by ExceptionReplayed.
+description_zh: ExceptionReplayed 携带的字段。
+fields:
+- 'chain: string'
+- 'customerId: string'
+- 'moneyMoved: boolean'
+- 'newTerminal: string — credited|paid'

@@ -1,0 +1,18 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: readModel
+name: ChainStatistics
+name_zh: 链统计
+description: 'The reconciliation dashboard: per-chain terminal ledger (entered / in-flight / terminal
+  buckets) asserting the balanced equation; flow counters alongside for observation only.'
+description_zh: 对账大盘：每条链的终态账本（进入/在途/终态桶）并断言 balanced 等式；旁边是仅供观察的过程流量计数。
+served_by: GET /api/bank-batch/state
+sources:
+- customer-order
+- batch-chain-run
+fields:
+- 'per-chain.entered: integer ← distinct (chain × customer) 见过的'
+- 'per-chain.inFlight: integer ← entered − 终态数'
+- 'per-chain.terminals: map ← 按终态计数'
+- 'per-chain.balanced: boolean ← entered == inFlight + Σ终态（断言）'
+- 'flow counters: map ← 过程计数（含重跑，不对账）'

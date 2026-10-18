@@ -1,0 +1,8 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: role
+name: System
+name_zh: 系统
+description: 'The automatic role: executes chain stages, classifies results, routes failures per policy
+  without human involvement.'
+description_zh: 自动角色：执行链阶段、分类结果、按策略自动路由失败项，无需人工介入。

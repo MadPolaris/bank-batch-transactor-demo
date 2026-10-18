@@ -1,0 +1,13 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: event
+name: StageCompleted
+name_zh: 阶段完成
+description: One of the six chain stages finished cleanly (file-gen → upload → wait-ack → poll → parse
+  → classify, in order). Records which stage finished and its output info plus the full run state — this
+  is the resume breakpoint.
+description_zh: 六阶段链中的某阶段干净完成（file-gen→upload→wait-ack→poll→parse→classify，按序）。记下完成的阶段、阶段产出信息与当时完整运行状态——这就是断点。
+sequence: 2
+payload_fields:
+- 'stage: string — 阶段名，如 upload（断点）'
+- 'outputInfo: map — 阶段产出信息'

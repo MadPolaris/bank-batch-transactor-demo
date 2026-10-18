@@ -1,0 +1,15 @@
+# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
+kind: note
+type: policy
+name: FailureRoutingDecision
+name_zh: 失败路由决策
+description: 'Every failed item gets exactly one routing decision, first matching rule wins: retryCount
+  ≥ maxRetries → manual; classifier''s suggestedAction wins; else actionMap[code]; else RetrySameArea(defaultCooldown).
+  RetrySameArea items form ONE next-round batch.'
+description_zh: 每个失败项有且只有一个路由决策，首条命中生效：重试超限→转人工；分类器的 suggestedAction 优先；再按 actionMap；兜底同区重试。同区重试的项聚成一个下一轮批次。
+triggers:
+- run-completed (with failures)
+invokes:
+- abandon-order
+- escalate-to-manual
+- start-batch-run
