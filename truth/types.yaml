@@ -29,7 +29,7 @@ types:
     file_suffix: .pipeline.yaml
     description: >
       An ordered stage queue. Each stage declares what it reads, what it
-      writes, its failure codes, and the metadata it emits. The array order
+      writes, its failure codes, and the output info it records. The array order
       IS the execution order.
     required: [kind, id, name, description, stages]
 

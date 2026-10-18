@@ -4,24 +4,28 @@ id: batch-chain
 name: Six-Stage Batch Chain
 name_zh: 六阶段批量链
 description: >
-  The six mechanical stages of one batch's interaction with the external
-  system, in fixed order. Each stage reads its input slot from the run state
-  and writes its output slot; a missing input slot fails fast ("stages must
-  run in chain order"). Cursor vocabulary (file-gen … classify) is the resume
-  language shared by the engine and the journal.
+  The six business steps of one batch's interaction with the external bank /
+  fund-company system, in fixed order: build the batch file, send it, wait for
+  the receipt confirmation, pull the processing result, decode it, and classify
+  every item. Each stage reads its input from the run state and writes its
+  output back; a missing input fails fast — stages must run in chain order.
+  The stage names (file-gen … classify) are the shared resume vocabulary:
+  a breakpoint is always "which stage finished last".
 description_zh: >
-  一批 items 与外部系统交互的六个机械阶段，顺序固定。每阶段从运行状态读
-  输入槽、写输出槽；输入槽缺失则快速失败（"stages must run in chain order"）。
-  游标词汇（file-gen … classify）是引擎与 journal 共用的续跑语言。
+  一批 items 与外部银行 / 基金公司系统交互的六个业务步骤，顺序固定：
+  生成批量文件、上传、等回执确认、拉取处理结果、解码、逐项分类。
+  每阶段从运行状态读输入、写回输出；输入缺失则快速失败——阶段必须
+  按链顺序跑。阶段名（file-gen … classify）是共用的续跑词汇：
+  断点永远是"上一个完成的阶段是哪个"。
 stages:
   - id: file-gen
     name: Generate batch file
     name_zh: 生成批量文件
-    description: Encode the batch items into a transfer file.
+    description: Encode the batch items into the transfer file the bank expects.
     reads: [items, context]
     writes: [generatedFile]
     failure_codes: []
-    metadata: [localPath, fileName, byteSize, encoding]
+    output_info: [localPath, fileName, byteSize, encoding]
 
   - id: upload
     name: Upload file
@@ -31,19 +35,19 @@ stages:
     writes: [receipt]
     precondition: generatedFile present
     failure_codes: []
-    metadata: [remotePath, bytesTransferred, timestamp]
+    output_info: [remotePath, bytesTransferred, timestamp]
 
   - id: wait-ack
     name: Wait for acknowledgement
     name_zh: 等待外部确认
-    description: Wait for the external system to acknowledge receipt.
+    description: Wait for the external system to acknowledge receipt of the file.
     reads: [receipt]
     writes: [ack]
     precondition: receipt present
     failure_codes:
       - { code: ACK_TIMEOUT,  meaning: External system stayed silent past the wait }
       - { code: ACK_REJECTED, meaning: External system refused the file }
-    metadata: [ackResult]
+    output_info: [ackResult]
 
   - id: poll
     name: Poll response
@@ -54,7 +58,7 @@ stages:
     failure_codes:
       - { code: POLL_TIMEOUT, meaning: Response never became ready in time }
       - { code: POLL_ERROR,   meaning: Polling itself errored }
-    metadata: [localPath, fileName, byteSize]
+    output_info: [localPath, fileName, byteSize]
 
   - id: parse
     name: Parse response
@@ -64,7 +68,7 @@ stages:
     writes: [rawResults]
     precondition: responseFile present
     failure_codes: []
-    metadata: [resultCount]
+    output_info: [resultCount]
 
   - id: classify
     name: Classify results
@@ -74,10 +78,10 @@ stages:
     writes: [classifications]
     precondition: rawResults present
     failure_codes: []
-    metadata: [successCount, failureCount, suspiciousCount]
+    output_info: [successCount, failureCount, suspiciousCount]
 
 failure_semantics: >
-  Classified failures throw StageFailedException. The demo configures no
-  failure interceptor, so a failed stage fails the run (same as the old
-  SubBatchProcessor behavior). A host may install an interceptor to
-  resolve-and-continue instead.
+  A failed stage fails the run — the same business outcome as the old manual
+  process: a batch that cannot finish a step does not silently continue.
+  (A recovery rule could be installed to resolve-and-continue instead; the
+  demo configures none.)

@@ -15,8 +15,8 @@ description_zh: >
 identity:
   fields: [chain, customerId]
   description: >
-    Idempotency key is customerId within a chain. (chain, customerId) is the
-    grain of the terminal ledger.
+    customerId is the idempotency key within a chain. (chain, customerId) is
+    the grain of the terminal ledger.
 state_slots:
   - name: chain
     type: string
@@ -41,29 +41,40 @@ lifecycle:
   - { from: except_pool, via: replay-exception,     to: credited }
   - { from: except_pool, via: replay-exception,     to: paid }
   # A1 (arbitrated 2026-10-18): replay success is a legal transition
-  # except_pool → credited/paid (atomic compare-and-set). Money moves if and
-  # only if the ledger transitions — the three (money, ledger, feed) agree.
+  # except_pool → credited/paid. The ledger and the money move together or
+  # not at all — money, ledger, and event feed always agree.
 invariants:
   - id: exactly-once-terminal
     description: >
-      First terminal write wins (putIfAbsent). A customer already terminal is
-      never settled again — rebatch re-runs and double classifications are
-      skipped by customerId.
+      First terminal write wins. A customer already terminal is never settled
+      again — rebatch re-runs and double classifications are skipped by
+      customerId.
+    description_zh: >
+      终态第一次写入生效。已是终态的客户不再结算——重批重跑与重复分类
+      都按 customerId 跳过。
   - id: balanced-ledger
     description: >
       entered == inFlight + credited/paid + rejected + manual + except_pool,
       per chain. The stats view asserts this.
-persistence:
-  mechanism: >
-    In-memory ledger (TerminalLedger), but it is a READ MODEL — rebuilt from
-    the batch-chain-run journals on service startup (LedgerRecovery).
+    description_zh: >
+      每条链：进入数 == 在途数 + 各终态数之和。统计页断言此等式。
+ledger_durability:
+  rule: >
+    The terminal ledger is a read model, not a second write model. It is
+    rebuilt from the batch runs' progress records whenever the service
+    (re)starts.
+  rule_zh: >
+    终态账本是读模型，不是第二套写模型。服务每次（重）启，都从各批次
+    的进度记录重建账本。
   rebuild: >
-    A3 (arbitrated 2026-10-18): on (re)start, the service reads the latest run's
-    entity journals (StageDone protobuf snapshots carry full classifications),
-    replays them through BankDecisions.decideTerminal — the same pure mapping
-    the live businessClosure uses, by construction — and restores terminal
-    states, the seen-set, and the exception pool. A service crash no longer
-    loses the ledger; the journal is the single source of truth.
-  note: >
-    Journals written before the A2 migration used the "m25-bank-web-chain"
-    type-key prefix and are not recovered (treated as a fresh start).
+    A3 (arbitrated 2026-10-18): on (re)start, the service replays the latest
+    runs' progress records (which carry the full classifications) through the
+    terminal-decision rules — the same rules the live business closure uses,
+    by construction — and restores terminal states, the seen-set, and the
+    exception pool. A service crash no longer loses the ledger; the progress
+    records are the single source of truth.
+  rebuild_zh: >
+    A3（2026-10-18 仲裁）：（重）启时，服务把最近各批次的进度记录
+    （含完整分类结果）按终态判定规则重放一遍——这套规则与实时业务收尾
+    是同一套（同一份规则，不是两份拷贝）——恢复终态、已见集合与异常池。
+    服务宕机不再丢失账本；进度记录是唯一的事实来源。

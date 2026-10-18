@@ -3,8 +3,8 @@
 Two consistency boundaries, each owning its slices:
 
 - **`batch-chain-run/`** — one execution of the six-stage chain for one batch.
-  Identity = runId. Owns the stage-journal lifecycle (start → stage snapshots →
-  completed/failed, crash → resume). See `pipelines/batch-chain.pipeline.yaml`
+  Identity = runId. Owns the run lifecycle (start → per-stage progress records →
+  completed/failed, interruption → resume from breakpoint). See `pipelines/batch-chain.pipeline.yaml`
   for what the six stages actually do.
 - **`customer-order/`** — one customer's order in one chain, i.e. one row of the
   terminal ledger. Identity = (chain, customerId). Owns the exactly-once terminal

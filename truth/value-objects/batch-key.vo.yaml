@@ -4,20 +4,18 @@ id: batch-key
 name: Batch Key
 name_zh: 批次键
 description: >
-  The batch key is simultaneously the sharding entityId and the journal
-  persistenceId suffix: `bank-{runId}-{chain}-r{round}-b{index}`.
+  The business key of one batch run: `bank-{runId}-{chain}-r{round}-b{index}`.
   A4 (arbitrated 2026-10-18): '-' is the delimiter, so chain names and runIds
-  must not contain '-'. The invariant is enforced at creation (BatchKey.encode
-  fails fast); encode and decode live in one place (BatchKey) as inverse
-  operations, so they cannot drift apart.
+  must not contain '-'. The invariant is enforced where the key is created —
+  a violating name is rejected on the spot. Encoding and decoding live in one
+  place as inverse operations, so they cannot drift apart.
 description_zh: >
-  批次键同时是分片 entityId 与 journal persistenceId 的后缀：
-  `bank-{runId}-{chain}-r{round}-b{index}`。
-  A4（2026-10-18 仲裁）：'-' 是分隔符，因此 chain 名与 runId 都不得包含 '-'。
-  该不变量在创建时强制（BatchKey.encode 直接抛错）；编码与解码在同一处
-  （BatchKey）互为逆操作，不可能互相漂移。
+  一次批次运行的业务键：`bank-{runId}-{chain}-r{round}-b{index}`。
+  A4（2026-10-18 仲裁）：'-' 是分隔符，因此链名与运行号都不得包含 '-'。
+  该不变量在键创建处强制——违规的名字当场被拒绝。编码与解码在同一处
+  互为逆操作，不可能互相漂移。
 fields:
-  - { name: runId, type: string, description: "Per-launch token; journals never leak across launches. Must not contain '-'." }
+  - { name: runId, type: string, description: "Per-launch token; progress records from one launch are never confused with another's. Must not contain '-'." }
   - { name: chain, type: string, description: "recharge | purchase. Must not contain '-' (enforced at creation)." }
   - { name: round, type: integer, description: "1-based rebatch round." }
   - { name: index, type: integer, description: "0-based batch index within the round." }
@@ -26,7 +24,9 @@ invariants:
     description: >
       Neither runId nor chain may contain '-'. Violations are rejected where
       the key is created (fail fast), not where it is parsed.
+    description_zh: runId 与链名都不得含 '-'。违规在键创建处被拒绝（快速失败），而不是在解析处。
   - id: encode-decode-inverse
     description: >
       decode(encode(runId, chain, round, index)) == (runId, chain, round, index),
-      always. A single owner (BatchKey) for both directions.
+      always. A single owner for both directions.
+    description_zh: 编码解码互为逆操作，恒成立。两个方向同一处负责。

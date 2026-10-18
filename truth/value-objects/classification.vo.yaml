@@ -31,7 +31,7 @@ inline_types:
     fields:
       - { name: code, type: string, description: "Machine code, e.g. BALANCE_INSUFFICIENT" }
       - { name: message, type: string, description: Human-readable message }
-      - { name: suggestedAction, type: next-step, description: "Optional hint from the classifier (ref next-step); NOT journaled in snapshots" }
+      - { name: suggestedAction, type: next-step, description: "Optional hint from the classifier (ref next-step); not part of the progress record" }
   - name: suspicious-reason
     fields:
       - { name: code, type: string, description: "Machine code, e.g. TIMEOUT" }

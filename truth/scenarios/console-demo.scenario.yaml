@@ -7,13 +7,13 @@ description: >
   The standalone runnable (sbt run): the same six-stage chain against a
   simulated bank host, with printing hooks. Two scenarios — the happy path
   and the ack-timeout failure path — the smallest possible tour of the
-  engine's behavior.
+  chain's behavior.
 description_zh: >
   独立可运行版本（sbt run）：同一条六阶段链，对接模拟银行，带打印钩子。
-  两个场景——happy path 与 ack 超时失败路径——引擎行为的最小巡览。
+  两个场景——happy path 与 ack 超时失败路径——链行为的最小巡览。
 scale:
   items: 3
-  note: no sharding, no journal — in-process monarch-core only
+  note: in-process only — no persistent progress records
 chains:
   - id: demo-chain
     name: Demo chain
@@ -26,7 +26,7 @@ outcome_rules:
       - { when: otherwise,                  then: "Failure(BANK_REJECT)" }
   - scenario: ack-timeout
     rules:
-      - { when: "external system stays silent", then: "wait-ack throws ACK_TIMEOUT StageFailedException → batch aborted" }
-    note: A host can install a failure interceptor to resolve-and-continue instead.
+      - { when: "external system stays silent", then: "wait-ack fails with ACK_TIMEOUT → batch aborted" }
+    note: A recovery rule could be installed to resolve-and-continue instead.
 observability:
-  description: Printing hooks log cursor + metadata per stage (>> started / << done / !! FAILED).
+  description: Printing hooks log the breakpoint + output info per stage (>> started / << done / !! FAILED).

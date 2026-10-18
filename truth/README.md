@@ -7,12 +7,11 @@ from the source code (scenario A: read-only extraction, no code was generated fr
 
 Batch **recharge** (充值) and **purchase** (申购) transactions against an external bank /
 fund-company system. Each batch of items runs through a **six-stage resumable chain**
-(file-gen → upload → wait-ack → poll → parse → classify) executed by
-`monarch-persistence`'s `PersistentMonarch`: every stage journals a snapshot, so a crash
-resumes from the breakpoint instead of re-running completed stages. Results are
-tri-classified (success / failure / suspicious); failures are routed
-(retry / abandon / manual), suspicious items are reconfirmed, and every customer order
-lands in exactly one terminal state.
+(file-gen → upload → wait-ack → poll → parse → classify): every completed stage
+records its progress, so an interruption resumes from the breakpoint instead of
+re-running completed stages. Results are tri-classified (success / failure /
+suspicious); failures are routed (retry / abandon / manual), suspicious items are
+reconfirmed, and every customer order lands in exactly one terminal state.
 
 ## How to navigate (top-down, no tooling needed)
 

@@ -13,7 +13,7 @@ description_zh: >
   查证后仍不确定 → 保守按失败处理（进 routing-decision，绝不静默丢弃）。
 triggers:
   - event: run-completed
-    note: with suspicious classifications in the run snapshot
+    note: with suspicious classifications in the run's progress records
 invokes:
   - slice: settle-recharge
   - slice: settle-purchase

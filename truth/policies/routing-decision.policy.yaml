@@ -14,7 +14,7 @@ description_zh: >
   作为**一个**下一轮批次入队——绝不逐项入队（那会卡死调度器）。
 triggers:
   - event: run-completed
-    note: with failure classifications in the run snapshot
+    note: with failure classifications in the run's progress records
 invokes:
   - slice: abandon-order
   - slice: escalate-to-manual

@@ -12,28 +12,28 @@ Method: scenario A, read-only reverse engineering. No code was generated from th
 | Tree area | Source files |
 |---|---|
 | `pipelines/batch-chain` — six stages, slots, failure codes, metadata | `core/.../component/BankChain.scala` (BankStage, runStage, metadataOf) |
-| `aggregates/batch-chain-run` — run lifecycle, journal events, persistence contract | `core/.../component/ChainExecutionActor.scala`, `web/.../bank/WebChain.scala` |
+| `aggregates/batch-chain-run` — run lifecycle, per-stage progress records, resume-from-breakpoint | `core/.../component/ChainExecutionActor.scala`, `web/.../bank/WebChain.scala` |
 | `aggregates/customer-order` — terminal ledger, exactly-once invariant | `web/.../bank/BankBatchDemoService.scala` (terminalStates, setTerminal) |
 | slices `settle-*` / `abandon` / `escalate` / `park` / `replay` | `BankBatchDemoService.businessClosure`, `replayException(s)` |
-| slices `start-batch-run` / `simulate-crash` | `ChainExecutionActor.startRun`, `WebChain.SimulateCrash`, `crashRandom` |
+| slices `start-batch-run` / `simulate-crash` | run start, crash-simulation command |
 | `value-objects/` — classification, next-step, policies, ack/poll, files, customer | `ResultClassifier.scala`, `ReBatchRouter.scala`, `SubBatchPipeline.scala`, `BankBatchDemoService.scala` |
 | `policies/` — routing, reconfirm, business closure | `businessClosure`, `PolicyBasedReBatchRouter`, `reconfirmOf` |
 | `read-models/` — stats, exception pool, event feed | `BankBatchController.scala`, `routes`, `chainStatsJson`, `BankBatchJson` |
 | `scenarios/scale-demo` — 100k script, outcome table | `BankBatchDemoService` (outcomeOf, reconfirmOf, updateAccountGlitchy) |
 | `scenarios/console-demo` — sbt run tour | `core/.../demo/BankBatchDemo.scala` |
-| Snapshot schema (referenced, not duplicated) | `core/src/main/protobuf/bank_chain.proto`, `BankStateCodec.scala` |
+| Progress-record schema (referenced, not duplicated) | progress-record field layout |
 
 ## Deliberately left out
 
-- **Framework glue.** Akka actor wiring, Play DI/routes mechanics, JSON frame-builder
+- **Framework glue.** Actor wiring, web-framework DI/routes mechanics, JSON frame-builder
   internals, the deterministic-hash implementation, simulated-pipeline sleep
   durations. The *domain facts* these produce (frame types, outcome table) are in
   the tree; the *mechanisms* are not.
-- **Unwired legacy components.** `SubBatchProcessor` (the pre-Monarch for-comprehension),
-  `AreaScheduler`/`WindowedAreaScheduler`, and the `ReconfirmHandler` trait are present
-  in `core/.../component/` but nothing in the demo calls them — the demo runs on
-  `BankChain` + `PersistentMonarch`, and reconfirm is implemented inline
-  (`reconfirmOf`). They are real library code, but they are not *this demo's* truth.
+- **Unwired legacy components.** The old for-comprehension batch processor,
+  the area schedulers, and the reconfirm-handler trait are present
+  in `core/.../component/` but nothing in the demo calls them — the demo runs the
+  six-stage chain with progress records, and reconfirm is implemented inline.
+  They are real library code, but they are not *this demo's* truth.
 - **Test specs.** `BankChainSpec` / `ChainExecutionActorSpec` verify behavior; they don't
   add domain facts beyond what's extracted.
 - **Compiler-owned bookkeeping.** No seq/order/keyOrder fields anywhere — per the
@@ -43,54 +43,54 @@ Method: scenario A, read-only reverse engineering. No code was generated from th
 
 The user arbitrated all four on 2026-10-18 ("按照完整一致的方式修，要有说服力").
 The standard: the system's own invariants must hold — money/ledger/feed agree,
-one entity type, ledger durable, key format enforced. Code and tree were changed
-together; the tree below records the decided semantics.
+one run per batch, ledger durable across restarts, key format enforced. Code and
+tree were changed together; the tree below records the decided semantics in
+problem-space language (what the business means, not how the code implements it).
 
-### A1. [ARBITRATED] Replay is a legal transition except_pool → credited/paid
-Decision: replay success moves the terminal state. `TerminalLedger.transitionTerminal`
-does an atomic compare-and-set (current must be exactly `except_pool`), applied
-BEFORE the money moves; on mismatch the replay is refused, money untouched, pool
-entry restored. Code: `BankBatchDemoService.replayException`, `TerminalLedger`.
+### A1. [ARBITRATED] Replay success is a legal transition except_pool → credited/paid
+Decision: a successful human replay moves the terminal state. The ledger and the
+money move together or not at all — the transition is applied before the money
+moves; if the order is no longer in except_pool the replay is refused, the money
+is untouched, and the pool entry is restored. Money, ledger, and event feed
+always agree.
 Tree: slice `replay-exception`, aggregate `customer-order` lifecycle + invariants.
-Tests: `TerminalLedgerSpec` (8), `ReplayExceptionSpec` (4, real service).
+Tests: 8 ledger-transition tests, 4 replay tests (incl. a real-service test
+proving terminal == credited/paid after replay).
 
-### A2. [ARBITRATED] One canonical sharding registration
-Decision: exactly one entity type, `"m25-chain-executor"`
-(`ChainExecutionActor.EntityTypeName`, single source of truth in core).
-`WebChain.initSharding` registers the same name — it is a behavior flavor
-(adds `SimulateCrash`) on the identical journal namespace, not a second type.
-`ChainExecutionActor.initSharding` remains the bare flavor for non-web hosts;
-registering both in one ActorSystem is rejected by Akka (the guard).
-Tree: aggregate `batch-chain-run` identity.sharding.
+### A2. [ARBITRATED] One run per batch, addressed the same way everywhere
+Decision: a batch has exactly one run. The web UI and the engine both address
+the same run — there is never a second, parallel run for the same batch, and a
+repeat start for an active or finished run is refused. The web's crash-simulation
+capability is a flavor of the same run, not a separate one.
+Tree: aggregate `batch-chain-run` identity (single_run).
 
-### A3. [ARBITRATED] Ledger is a read model, rebuilt from the journal
-Decision: no second write model. On service (re)start, `LedgerRecovery` reads the
-latest run's entity journals (StageDone protobuf snapshots carry full
-classifications) and replays them through `BankDecisions.decideTerminal` — the
-same pure mapping the live `businessClosure` uses, by construction (shared code,
-not duplicated logic). Restores terminal states, the seen-set, counters, and the
-exception pool. Mutually exclusive with `startRun` (stale recovery results are
-discarded). Journals from before the A2 migration (old type-key prefix) are not
-recovered. Code: `LedgerRecovery`, `BankDecisions`, `BankBatchDemoService.initSharding`.
-Tree: aggregate `customer-order` persistence; this note.
-Tests: `BankDecisionsSpec` (12), `LedgerRecoverySpec` (6).
+### A3. [ARBITRATED] The ledger is a read model, rebuilt from progress records
+Decision: no second write model. On service (re)start, the service replays the
+latest runs' progress records (which carry the full classifications) through the
+terminal-decision rules — the same rules the live business closure uses, by
+construction (one shared rule set, not two copies) — and restores terminal
+states, the seen-set, and the exception pool. A service crash no longer loses
+the ledger; the progress records are the single source of truth. Rebuild and a
+fresh run start are mutually exclusive (stale rebuild results are discarded).
+Tree: aggregate `customer-order` (ledger_durability); this note.
+Tests: 12 terminal-decision tests, 6 ledger-rebuild tests.
 
 ### A4. [ARBITRATED] Batch-key invariant enforced at creation (+ broken decode fixed)
-Decision: `BatchKey` owns encode/decode as inverse operations; chain names and
-runIds containing '-' are rejected where the key is created (fail fast).
-Found while fixing: the old `parseBatchKey` decoded as if there were no runId
-segment while `jobKey` included one — it threw NumberFormatException on real keys,
-and `chainOfBatchId` returned the runId instead of the chain. Both fixed by the
-single-owner change. Tree: new value-object `batch-key`.
-Tests: `BatchKeySpec` (6).
+Decision: the batch key owns its format in one place — encoding and decoding
+are inverse operations that cannot drift apart. Chain names and runIds
+containing '-' are rejected where the key is created (fail fast).
+Found while fixing: the old decoder assumed a key shape the encoder never
+produced — it crashed on real keys, and the chain-name lookup returned the
+runId instead of the chain. Both fixed by the single-owner change.
+Tree: new value-object `batch-key`.
+Tests: 6 batch-key tests.
 
 ## Ambiguous spots — [NEEDS CALL]
 
-### A5. `onCompleted` carries no snapshot (API workaround)
-The new `RunObserver.onCompleted(runId)` doesn't receive the final snapshot, so the
-demo keeps a `latestSnapshots` cache written by `onStageComplete`. Implementation
-detail — not domain truth, not in the tree. Noted here so nobody "fixes" the tree
-for it.
+### A5. Run-completion carries no final state (implementation workaround)
+The run-completion notification doesn't carry the final run state, so the demo
+keeps a small cache of the latest per-stage progress. Implementation detail —
+not domain truth, not in the tree. Noted here so nobody "fixes" the tree for it.
 
 ## Validation
 

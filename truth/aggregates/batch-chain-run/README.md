@@ -1,11 +1,10 @@
 # Batch Chain Run
 
 One execution of the six-stage batch chain for a single batch — the unit that
-gets journaled, snapshotted, crashed, and resumed.
+records progress per stage, gets interrupted, and resumes from the breakpoint.
 
-- `aggregate.yaml` — identity, state slots (the `BankChainState` slots), lifecycle,
-  invariants, and the persistence contract (per-stage protobuf snapshots, cursor
-  resume, generation guard).
+- `aggregate.yaml` — identity, run state, lifecycle, invariants, and the
+  progress-recording contract (per-stage progress records, breakpoint resume).
 - `slices/` — the two commands that act on a run:
   - `start-batch-run` — begin execution (duplicate starts are rejected).
-  - `simulate-crash` — demo-only: kill the entity, keep the journal, resume on restart.
+  - `simulate-crash` — demo-only: stop the process, keep the progress records, resume on restart.

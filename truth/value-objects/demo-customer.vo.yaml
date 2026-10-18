@@ -19,8 +19,8 @@ item_encoding:
   format: "chain:round:customerId"
   description: >
     How a batch item travels through the pipeline. The chain and round ride
-    along with the customer id so the single unified pipeline and observer can
-    serve both chains (protobuf needs strings — hence the encoding).
+    along with the customer id so a single chain definition can serve both
+    the recharge and the purchase chain.
   example: "recharge:1:3f2a…"
 chain_item:
   description: Decoded item = customer + its chain and round.

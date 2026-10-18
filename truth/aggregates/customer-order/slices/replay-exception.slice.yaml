@@ -6,17 +6,16 @@ name_zh: 人工重放
 description: >
   A human reviewed a parked order and replays it: the pool entry is removed
   and the account update is retried WITHOUT fault injection, so the money does
-  move. A1 (arbitrated 2026-10-18): replay success is a legal terminal
-  transition except_pool → credited (recharge) / paid (purchase), applied as an
-  atomic compare-and-set BEFORE the money moves. If the ledger is not
-  except_pool, the replay is refused, the money is untouched, and the pool
-  entry is restored — money, ledger, and event feed always agree.
+  move. A1 (arbitrated 2026-10-18): a successful replay is a legal terminal
+  transition except_pool → credited/paid. The ledger and the money move
+  together or not at all — if the transition is refused (the order is no
+  longer in except_pool), the money is untouched and the pool entry is
+  restored.
 description_zh: >
   人工复核被搁置的订单后重放：异常池条目移除，账务更新重试时不再注入故障，
-  资金确实会动。A1（2026-10-18 仲裁）：重放成功是合法的终态迁移
-  except_pool → credited（充值）/ paid（申购），以原子 compare-and-set 在
-  动钱之前先落账本。若账本不是 except_pool，重放被拒绝、钱不动、条目放回——
-  钱、账本、事件流三处永远一致。
+  资金确实会动。A1（2026-10-18 仲裁）：重放成功是一次合法的终态迁移，
+  except_pool → credited/paid。账和钱要么一起变，要么都不变——若迁移被拒绝
+  （订单已不在 except_pool），资金不动，池条目恢复。
 aggregate: customer-order
 parameters:
   - { name: chain, type: string, description: Chain the order belongs to }
@@ -28,9 +27,9 @@ produces:
   - exception-replayed
 events:
   exception-replayed:
-    description: The pooled order settled after human replay.
+    description: The pooled order settled after human replay; the ledger moved with the money.
     payload:
       - { name: chain, type: string, description: Chain }
       - { name: customerId, type: string, description: Customer identifier }
       - { name: moneyMoved, type: boolean, description: "true — replay always moves the money (no fault injection)" }
-      - { name: terminalTransition, type: string, description: '"except_pool → credited" (recharge) or "except_pool → paid" (purchase) — atomic, before the money moves' }
+      - { name: newTerminal, type: string, description: '"credited" or "paid" — the ledger transitioned with the money' }

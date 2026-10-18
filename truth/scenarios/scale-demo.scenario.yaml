@@ -56,6 +56,6 @@ chaining:
     the recharge batch job only completes after its purchase batches are queued.
 crash_demo:
   description: >
-    The crash button stops a random running batch entity (journal kept); the
-    entity restarts on the next message and resumes from the cursor — the page
-    shows RECOVERING then continues from the breakpoint.
+    The crash button stops a random running batch process (progress records
+    kept); the process restarts on the next instruction and resumes from the
+    breakpoint — the page shows RECOVERING then continues from the breakpoint.
