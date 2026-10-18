@@ -1,6 +1,7 @@
 # ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
 kind: note
 type: readModel
+id: chain-stats
 name: ChainStatistics
 name_zh: 链统计
 description: 'The reconciliation dashboard: per-chain terminal ledger (entered / in-flight / terminal
@@ -16,3 +17,5 @@ fields:
 - 'per-chain.terminals: map ← 按终态计数'
 - 'per-chain.balanced: boolean ← entered == inFlight + Σ终态（断言）'
 - 'flow counters: map ← 过程计数（含重跑，不对账）'
+visible_to:
+- operator

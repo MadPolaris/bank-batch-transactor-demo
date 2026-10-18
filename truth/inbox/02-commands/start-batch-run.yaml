@@ -1,6 +1,7 @@
 # ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
 kind: note
 type: command
+id: start-batch-run
 name: StartBatchRun
 name_zh: 启动批次运行
 description: Begin executing the six-stage chain for a batch. The initial run state is recorded with the

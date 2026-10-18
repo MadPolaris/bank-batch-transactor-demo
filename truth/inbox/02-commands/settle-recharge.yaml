@@ -1,6 +1,7 @@
 # ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
 kind: note
 type: command
+id: settle-recharge
 name: SettleRecharge
 name_zh: 充值结算
 description: 'A successfully classified recharge item settles: the customer account is credited. Feeds

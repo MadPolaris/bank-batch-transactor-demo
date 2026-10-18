@@ -1,6 +1,7 @@
 # ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
 kind: note
 type: command
+id: escalate-to-manual
 name: EscalateToManual
 name_zh: 转人工
 description: Route a failed item to human handling with a ticket id.

@@ -1,6 +1,7 @@
 # ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
 kind: note
 type: command
+id: park-in-exception-pool
 name: ParkInExceptionPool
 name_zh: 放入异常池
 description: 'The account update failed twice: park the order in the exception pool to wait for human

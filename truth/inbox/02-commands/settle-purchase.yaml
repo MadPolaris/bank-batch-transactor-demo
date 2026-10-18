@@ -1,6 +1,7 @@
 # ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
 kind: note
 type: command
+id: settle-purchase
 name: SettlePurchase
 name_zh: 申购结算
 description: 'A successfully classified purchase item settles: balance debited, fund position increased.'
