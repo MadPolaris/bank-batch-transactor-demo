@@ -1,0 +1,35 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: field
+name: OrderCreditedFields
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 14
+payload:
+  {
+    "type": "field",
+    "name": "OrderCreditedFields",
+    "name_zh": "充值入账字段",
+    "stage": "refining",
+    "description": "Fields carried by OrderCredited.",
+    "description_zh": "OrderCredited 携带的字段。",
+    "fields": [
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": "recharge"
+      },
+      {
+        "name": "customerId",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "amount",
+        "dataType": "number",
+        "description": ""
+      }
+    ]
+  }

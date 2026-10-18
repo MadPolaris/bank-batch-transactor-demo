@@ -1,0 +1,18 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: entity
+name: PollResult
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 9
+payload:
+  {
+    "type": "entity",
+    "name": "PollResult",
+    "name_zh": "轮询结果",
+    "stage": "refining",
+    "description": "Outcome of pulling the response file: ready, timeout (POLL_TIMEOUT), or polling error (POLL_ERROR).",
+    "description_zh": "拉取响应文件的结果：就绪、超时（POLL_TIMEOUT）、轮询出错（POLL_ERROR）。"
+  }

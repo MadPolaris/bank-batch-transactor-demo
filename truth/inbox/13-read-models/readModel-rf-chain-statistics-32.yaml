@@ -1,0 +1,54 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: readModel
+name: ChainStatistics
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 32
+payload:
+  {
+    "type": "readModel",
+    "name": "ChainStatistics",
+    "id": "chain-stats",
+    "name_zh": "链统计",
+    "stage": "refining",
+    "description": "The reconciliation dashboard: per-chain terminal ledger (entered / in-flight / terminal buckets) asserting the balanced equation; flow counters alongside for observation only.",
+    "description_zh": "对账大盘：每条链的终态账本（进入/在途/终态桶）并断言 balanced 等式；旁边是仅供观察的过程流量计数。",
+    "served_by": "GET /api/bank-batch/state",
+    "sources": [
+      "customer-order",
+      "batch-chain-run"
+    ],
+    "fields": [
+      {
+        "name": "per-chain.entered",
+        "dataType": "integer",
+        "description": "distinct (chain × customer) 见过的"
+      },
+      {
+        "name": "per-chain.inFlight",
+        "dataType": "integer",
+        "description": "entered − 终态数"
+      },
+      {
+        "name": "per-chain.terminals",
+        "dataType": "map",
+        "description": "按终态计数"
+      },
+      {
+        "name": "per-chain.balanced",
+        "dataType": "boolean",
+        "description": "entered == inFlight + Σ终态（断言）"
+      },
+      {
+        "name": "flow counters",
+        "dataType": "map",
+        "description": "过程计数（含重跑，不对账）"
+      }
+    ],
+    "visible_to": [
+      "operator"
+    ]
+  }

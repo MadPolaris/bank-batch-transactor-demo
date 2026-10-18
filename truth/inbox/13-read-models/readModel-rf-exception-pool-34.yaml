@@ -1,0 +1,51 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: readModel
+name: ExceptionPool
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 34
+payload:
+  {
+    "type": "readModel",
+    "name": "ExceptionPool",
+    "id": "exception-pool",
+    "name_zh": "人工异常池",
+    "stage": "refining",
+    "description": "Orders whose account update failed twice, waiting for human replay. Replay moves the money and the ledger except_pool → credited/paid together.",
+    "description_zh": "账务更新失败两次、等人工重放的订单。重放时资金与账本一起从 except_pool 变为 credited/paid。",
+    "served_by": [
+      "GET /api/bank-batch/exceptions",
+      "POST /api/bank-batch/exceptions/replay"
+    ],
+    "sources": [
+      "customer-order"
+    ],
+    "fields": [
+      {
+        "name": "count",
+        "dataType": "integer",
+        "description": "池大小"
+      },
+      {
+        "name": "entries[].chain ← 订单所在链",
+        "dataType": "",
+        "description": ""
+      },
+      {
+        "name": "entries[].customerId ← 客户",
+        "dataType": "",
+        "description": ""
+      },
+      {
+        "name": "entries[].name ← 展示名",
+        "dataType": "",
+        "description": ""
+      }
+    ],
+    "visible_to": [
+      "operator"
+    ]
+  }

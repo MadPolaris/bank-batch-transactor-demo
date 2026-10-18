@@ -1,31 +1,44 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: slice
-id: simulate-crash
-name: Simulate Crash
-name_zh: 模拟宕机
-description: >
-  Demo-only command: stop the run's process while keeping its progress
-  records. The next instruction restarts the process and the run resumes
-  from the breakpoint — completed stages are not re-run. This is how the
-  web UI's crash button proves crash-resilience live.
-description_zh: >
-  仅演示用命令：停掉运行进程，但保留进度记录。下一条指令重启进程，
-  运行从断点续跑——已完成的阶段不重做。Web UI 的宕机按钮就是靠它
-  现场证明崩溃恢复。
-aggregate: batch-chain-run
-parameters:
-  - name: runId
-    type: string
-    description: The running batch to interrupt.
-guards:
-  - description: demo surface only — not part of the production protocol
-produces:
-  - run-recovered
+aggregate: "Batch Chain Run"
+command: simulate-crash
+payload:
+  {
+    "name": "simulate-crash",
+    "name_zh": "模拟宕机",
+    "description": "Demo-only command: stop the run's process while keeping its progress records. The next instruction restarts the process and the run resumes from the breakpoint — completed stages are not re-run. This is how the web UI's crash button proves crash-resilience live.",
+    "description_zh": "仅演示用命令：停掉运行进程，但保留进度记录。下一条指令重启进程， 运行从断点续跑——已完成的阶段不重做。Web UI 的宕机按钮就是靠它 现场证明崩溃恢复。",
+    "parameters": [
+      {
+        "name": "runId",
+        "dataType": "string",
+        "description": "The running batch to interrupt."
+      }
+    ],
+    "guards": [
+      "demo surface only — not part of the production protocol"
+    ],
+    "produces": [
+      "run-recovered"
+    ]
+  }
 events:
-  run-recovered:
-    description: >
-      The process restarted and resumed from the last recorded breakpoint;
-      already-completed stages were skipped.
-    payload:
-      - { name: runId, type: string, description: Run identifier }
-      - { name: completedCount, type: integer, description: Stages skipped on resume }
+  {
+    "run-recovered": {
+      "name": "run-recovered",
+      "description": "The process restarted and resumed from the last recorded breakpoint; already-completed stages were skipped.",
+      "payloads": [
+        {
+          "name": "runId",
+          "dataType": "string",
+          "description": "Run identifier"
+        },
+        {
+          "name": "completedCount",
+          "dataType": "integer",
+          "description": "Stages skipped on resume"
+        }
+      ]
+    }
+  }

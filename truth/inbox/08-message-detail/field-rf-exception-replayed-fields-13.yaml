@@ -1,0 +1,40 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: field
+name: ExceptionReplayedFields
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 13
+payload:
+  {
+    "type": "field",
+    "name": "ExceptionReplayedFields",
+    "name_zh": "人工重放字段",
+    "stage": "refining",
+    "description": "Fields carried by ExceptionReplayed.",
+    "description_zh": "ExceptionReplayed 携带的字段。",
+    "fields": [
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "customerId",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "moneyMoved",
+        "dataType": "boolean",
+        "description": ""
+      },
+      {
+        "name": "newTerminal",
+        "dataType": "string",
+        "description": "credited|paid"
+      }
+    ]
+  }

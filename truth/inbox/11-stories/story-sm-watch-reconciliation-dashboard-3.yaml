@@ -1,0 +1,21 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: story
+name: WatchReconciliationDashboard
+origin:
+  stage: storyMapping
+  board: reconstructed
+  seq: 3
+payload:
+  {
+    "type": "story",
+    "name": "WatchReconciliationDashboard",
+    "name_zh": "查看对账大盘",
+    "stage": "storyMapping",
+    "description": "As 运营人员: 在对账大盘看到每条链的终态分布与 balanced 断言 — 确认账实相符.",
+    "description_zh": "运营人员在对账大盘看到每条链的终态分布与 balanced 断言，确认账实相符。",
+    "role": "运营人员",
+    "goal": "在对账大盘看到每条链的终态分布与 balanced 断言",
+    "benefit": "确认账实相符"
+  }

@@ -1,0 +1,89 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: policy
+type: policy
+name: "Suspicious Reconfirmation"
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 36
+triggers:
+  - event: run-completed
+    aggregate: Batch Chain Run
+invokes:
+  - command: settle-recharge
+    aggregate: Customer Order
+  - command: settle-purchase
+    aggregate: Customer Order
+  - command: abandon-order
+    aggregate: Customer Order
+  - command: escalate-to-manual
+    aggregate: Customer Order
+  - command: start-batch-run
+    aggregate: Batch Chain Run
+payload:
+  {
+    "type": "policy",
+    "id": "reconfirm-rule",
+    "name": "Suspicious Reconfirmation",
+    "name_zh": "可疑复核",
+    "stage": "refining",
+    "description": "Suspicious is never a final state. Each suspicious item is verified against the authoritative source; verification decides success or failure. Still uncertain after verification → conservatively treated as failure (it then goes through routing-decision, never silently dropped).",
+    "description_zh": "可疑永远不是终态。每个可疑项都要拿权威数据源查证，查证结论定成功或失败； 查证后仍不确定 → 保守按失败处理（进 routing-decision，绝不静默丢弃）。",
+    "triggerNote": "with suspicious classifications in the run's progress records",
+    "links": [
+      "event:run-completed",
+      "command:settle-recharge",
+      "command:settle-purchase",
+      "command:abandon-order",
+      "command:escalate-to-manual",
+      "command:start-batch-run"
+    ],
+    "info": {
+      "triggers": [
+        {
+          "event": "run-completed",
+          "aggregate": "Batch Chain Run"
+        }
+      ],
+      "invokes": [
+        {
+          "command": "settle-recharge",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "settle-purchase",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "abandon-order",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "escalate-to-manual",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "start-batch-run",
+          "aggregate": "Batch Chain Run"
+        }
+      ]
+    },
+    "rules": [
+      {
+        "when": "verified success",
+        "then": "settle-recharge / settle-purchase (joins the success settlement flow)",
+        "note": "demo: 60% of suspicious verify as VERIFIED_SUCCESS"
+      },
+      {
+        "when": "verified failure",
+        "then": "routing-decision (as a fresh failure)",
+        "note": "demo: 40% verify as NETWORK_ERROR with suggestedAction RetrySameArea → auto-rebatch"
+      },
+      {
+        "when": "still uncertain after verification",
+        "then": "routing-decision as Failure (conservative)",
+        "note": "Never stays suspicious — the type system of the flow forbids it."
+      }
+    ]
+  }

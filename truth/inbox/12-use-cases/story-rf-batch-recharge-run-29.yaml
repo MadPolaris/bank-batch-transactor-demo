@@ -1,0 +1,32 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: story
+name: BatchRechargeRun
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 29
+payload:
+  {
+    "type": "story",
+    "name": "BatchRechargeRun",
+    "name_zh": "批量充值跑批",
+    "stage": "refining",
+    "description": "BatchRechargeRun: 启动批次运行; 六阶段依次执行：生成文件→上传→等回执→轮询→解析→分类; 业务收尾四步：复核可疑→路由失败→结算成功→衔接申购链.",
+    "description_zh": "批量充值跑批：启动批次运行；六阶段依次执行：生成文件→上传→等回执→轮询→解析→分类；业务收尾四步：复核可疑→路由失败→结算成功→衔接申购链。",
+    "preconditions": [
+      "运营人员配好批次（10 万客户，2000 一批）"
+    ],
+    "steps": [
+      "启动批次运行",
+      "六阶段依次执行：生成文件→上传→等回执→轮询→解析→分类",
+      "业务收尾四步：复核可疑→路由失败→结算成功→衔接申购链",
+      "对账大盘确认 balanced"
+    ],
+    "extensions": [
+      "某阶段失败→运行停止并告警",
+      "宕机→从断点续跑",
+      "可疑项→复核后定终态"
+    ]
+  }

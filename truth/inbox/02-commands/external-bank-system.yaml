@@ -1,8 +1,0 @@
-# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
-kind: note
-type: externalSystem
-name: PartnerBankSystem
-name_zh: 外部银行/基金公司系统
-description: 'The counterparty: receives the uploaded batch file, acknowledges receipt, and later serves
-  the processing result file for polling.'
-description_zh: 交易对手：接收上传的批量文件、确认回执，稍后提供处理结果文件供轮询。

@@ -1,0 +1,12 @@
+# ═══ truthsrc workshop root — hand-editable; contract: SCHEMA.md ═══
+
+schemaVersion: truthsrc/v1
+name: bank-batch-transactor-demo
+sessionOrder:
+  - eventStorming
+  - commandStorming
+  - aggregateDiscovery
+  - subdomainExploration
+  - contextMapping
+  - refining
+  - storyMapping

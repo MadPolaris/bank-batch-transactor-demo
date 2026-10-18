@@ -1,0 +1,29 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: story
+name: ExceptionOrderHandling
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 31
+payload:
+  {
+    "type": "story",
+    "name": "ExceptionOrderHandling",
+    "name_zh": "异常订单处理",
+    "stage": "refining",
+    "description": "ExceptionOrderHandling: 运营人员查看异常池; 一键重放（单个或全部）; 资金到账、账本同步变为 credited/paid.",
+    "description_zh": "异常订单处理：运营人员查看异常池；一键重放（单个或全部）；资金到账、账本同步变为 credited/paid。",
+    "preconditions": [
+      "异常池有待处理订单"
+    ],
+    "steps": [
+      "运营人员查看异常池",
+      "一键重放（单个或全部）",
+      "资金到账、账本同步变为 credited/paid"
+    ],
+    "extensions": [
+      "重放仍失败→保留在池中等待下次"
+    ]
+  }

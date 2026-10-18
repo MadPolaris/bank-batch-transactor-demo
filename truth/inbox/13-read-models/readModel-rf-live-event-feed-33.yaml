@@ -1,0 +1,39 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: readModel
+name: LiveEventFeed
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 33
+payload:
+  {
+    "type": "readModel",
+    "name": "LiveEventFeed",
+    "id": "event-feed",
+    "name_zh": "实时事件流",
+    "stage": "refining",
+    "description": "The WebSocket stream the demo page renders: every run/chain lifecycle transition publishes a typed frame.",
+    "description_zh": "演示页实时渲染的 WebSocket 流：每次运行/链生命周期变化发布一个类型化帧。",
+    "served_by": "WS /ws/bank-batch/events",
+    "sources": [
+      "batch-chain-run",
+      "customer-order"
+    ],
+    "fields": [
+      {
+        "name": "frame",
+        "dataType": "{seq, type, data}",
+        "description": "领域事件的实时投影"
+      },
+      {
+        "name": "frame types",
+        "dataType": "run-started · job-start · batch-started · stage-done · stage-failed · batch-completed · batch-failed · recovering · credited · progress · crash",
+        "description": ""
+      }
+    ],
+    "visible_to": [
+      "operator"
+    ]
+  }

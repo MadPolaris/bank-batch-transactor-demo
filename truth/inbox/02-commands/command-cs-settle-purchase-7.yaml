@@ -1,0 +1,57 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: command
+name: SettlePurchase
+origin:
+  stage: commandStorming
+  board: reconstructed
+  seq: 7
+payload:
+  {
+    "type": "command",
+    "name": "SettlePurchase",
+    "id": "settle-purchase",
+    "name_zh": "申购结算",
+    "stage": "commandStorming",
+    "description": "A successfully classified purchase item settles: balance debited, fund position increased.",
+    "description_zh": "分类成功的申购项结算：余额扣减、基金持仓增加。",
+    "info": {
+      "id": "settle-purchase",
+      "triggers": [
+        "policy: 批次业务收尾"
+      ],
+      "produces": [
+        "order-paid"
+      ],
+      "parameters": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": "purchase"
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "amount",
+          "dataType": "number",
+          "description": ""
+        },
+        {
+          "name": "fund",
+          "dataType": "string",
+          "description": ""
+        }
+      ],
+      "guards": [
+        "订单未终态（第一次写入生效）",
+        "账务更新成功（最多自动重试一次）"
+      ]
+    },
+    "links": [
+      "event:OrderPaid"
+    ]
+  }

@@ -1,27 +1,59 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: slice
-id: abandon-order
-name: Abandon Order
-name_zh: 放弃订单
-description: >
-  A failed item the routing policy gives up on (e.g. balance insufficient,
-  quota exceeded → Scrap). Terminal: rejected. No retry, no human involved.
-description_zh: >
-  路由策略决定放弃的失败项（如余额不足、额度超限 → Scrap）。终态 rejected，
-  不重试、不转人工。
-aggregate: customer-order
-parameters:
-  - { name: chain, type: string, description: Chain the order belongs to }
-  - { name: customerId, type: string, description: Customer identifier }
-  - { name: reasonCode, type: string, description: "Failure code, e.g. BALANCE_INSUFFICIENT" }
-guards:
-  - description: routing decision is Scrap (policy routing-decision)
-produces:
-  - order-rejected
+aggregate: "Customer Order"
+command: abandon-order
+payload:
+  {
+    "name": "abandon-order",
+    "name_zh": "放弃订单",
+    "description": "A failed item the routing policy gives up on (e.g. balance insufficient, quota exceeded → Scrap). Terminal: rejected. No retry, no human involved.",
+    "description_zh": "路由策略决定放弃的失败项（如余额不足、额度超限 → Scrap）。终态 rejected， 不重试、不转人工。",
+    "parameters": [
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": "Chain the order belongs to"
+      },
+      {
+        "name": "customerId",
+        "dataType": "string",
+        "description": "Customer identifier"
+      },
+      {
+        "name": "reasonCode",
+        "dataType": "string",
+        "description": "Failure code, e.g. BALANCE_INSUFFICIENT"
+      }
+    ],
+    "guards": [
+      "routing decision is Scrap (policy routing-decision)"
+    ],
+    "produces": [
+      "order-rejected"
+    ]
+  }
 events:
-  order-rejected:
-    description: The order was abandoned per policy; terminal.
-    payload:
-      - { name: chain, type: string, description: Chain }
-      - { name: customerId, type: string, description: Customer identifier }
-      - { name: reasonCode, type: string, description: Failure code }
+  {
+    "order-rejected": {
+      "name": "order-rejected",
+      "description": "The order was abandoned per policy; terminal.",
+      "payloads": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": "Chain"
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": "Customer identifier"
+        },
+        {
+          "name": "reasonCode",
+          "dataType": "string",
+          "description": "Failure code"
+        }
+      ]
+    }
+  }

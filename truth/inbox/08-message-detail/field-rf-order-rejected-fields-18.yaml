@@ -1,0 +1,35 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: field
+name: OrderRejectedFields
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 18
+payload:
+  {
+    "type": "field",
+    "name": "OrderRejectedFields",
+    "name_zh": "订单放弃字段",
+    "stage": "refining",
+    "description": "Fields carried by OrderRejected.",
+    "description_zh": "OrderRejected 携带的字段。",
+    "fields": [
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "customerId",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "reason",
+        "dataType": "string",
+        "description": ""
+      }
+    ]
+  }

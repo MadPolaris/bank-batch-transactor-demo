@@ -1,0 +1,31 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: story
+name: BatchPurchaseRun
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 28
+payload:
+  {
+    "type": "story",
+    "name": "BatchPurchaseRun",
+    "name_zh": "批量申购跑批",
+    "stage": "refining",
+    "description": "BatchPurchaseRun: 启动申购批次运行; 六阶段执行; 业务收尾：成功成交、失败路由.",
+    "description_zh": "批量申购跑批：启动申购批次运行；六阶段执行；业务收尾：成功成交、失败路由。",
+    "preconditions": [
+      "充值链已入账客户组批入队"
+    ],
+    "steps": [
+      "启动申购批次运行",
+      "六阶段执行",
+      "业务收尾：成功成交、失败路由",
+      "对账确认"
+    ],
+    "extensions": [
+      "QUOTA_EXCEEDED→放弃",
+      "NETWORK_ERROR→自动重批"
+    ]
+  }

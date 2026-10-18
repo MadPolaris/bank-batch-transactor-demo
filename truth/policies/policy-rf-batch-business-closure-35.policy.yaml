@@ -1,0 +1,100 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: policy
+type: policy
+name: "Batch Business Closure"
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 35
+triggers:
+  - event: run-completed
+    aggregate: Batch Chain Run
+invokes:
+  - command: settle-recharge
+    aggregate: Customer Order
+  - command: settle-purchase
+    aggregate: Customer Order
+  - command: abandon-order
+    aggregate: Customer Order
+  - command: escalate-to-manual
+    aggregate: Customer Order
+  - command: park-in-exception-pool
+    aggregate: Customer Order
+  - command: start-batch-run
+    aggregate: Batch Chain Run
+payload:
+  {
+    "type": "policy",
+    "id": "business-closure",
+    "name": "Batch Business Closure",
+    "name_zh": "批次业务收尾",
+    "stage": "refining",
+    "description": "What happens when one batch run completes: the four-step business orchestration that turns classifications into ledger transitions and, for recharge, chains credited customers into the purchase chain. Steps run in order; account settlement is idempotent by customerId.",
+    "description_zh": "一批跑完后的四步业务编排：把分类变成账本终态，充值链的已入账客户 衔接进申购链。按顺序执行；账务结算按 customerId 幂等。",
+    "links": [
+      "event:run-completed",
+      "command:settle-recharge",
+      "command:settle-purchase",
+      "command:abandon-order",
+      "command:escalate-to-manual",
+      "command:park-in-exception-pool",
+      "command:start-batch-run"
+    ],
+    "info": {
+      "triggers": [
+        {
+          "event": "run-completed",
+          "aggregate": "Batch Chain Run"
+        }
+      ],
+      "invokes": [
+        {
+          "command": "settle-recharge",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "settle-purchase",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "abandon-order",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "escalate-to-manual",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "park-in-exception-pool",
+          "aggregate": "Customer Order"
+        },
+        {
+          "command": "start-batch-run",
+          "aggregate": "Batch Chain Run"
+        }
+      ]
+    },
+    "rules": [
+      {
+        "when": "run completed with suspicious classifications",
+        "then": "reconfirm-rule (policy)",
+        "note": "Step 1 — suspicious → verified success joins settlement; verified failure joins routing."
+      },
+      {
+        "when": "run completed with failure classifications",
+        "then": "routing-decision (policy)",
+        "note": "Step 2 — Scrap → abandon-order (rejected); ManualIntervention → escalate-to-manual (manual); RetrySameArea → collected into ONE next-round batch (start-batch-run), never per-item."
+      },
+      {
+        "when": "success or verified-success items not already terminal",
+        "then": "settle-recharge / settle-purchase, else park-in-exception-pool",
+        "note": "Step 3 — account update has a 1% transient fault (demo script); one auto-retry; still failing → park-in-exception-pool (except_pool). Idempotent: already-terminal customers are skipped."
+      },
+      {
+        "when": "chain == recharge and account targets settled as credited",
+        "then": "start-batch-run (purchase chain)",
+        "note": "Step 4 — credited recharge customers are grouped into purchase batches and enqueued; only then is the batch job done."
+      }
+    ]
+  }

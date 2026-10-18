@@ -1,99 +1,172 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: aggregate
-id: batch-chain-run
-name: Batch Chain Run
-name_zh: 批次链运行
-description: >
-  One execution of the six-stage batch chain for a single batch of items.
-  Every completed stage records its progress (including the full run state
-  at that moment), so if the run is interrupted it resumes from the
-  breakpoint — finished stages are not repeated.
-description_zh: >
-  一批 items 的六阶段链的一次执行。每完成一阶段就记下进度（含当时的
-  完整运行状态），中途被打断后从断点继续——已完成的阶段不重复。
-identity:
-  fields: [runId]
-  format: "bank-{runId}-{chain}-r{round}-b{index}"
-  format_invariant: >
-    A4 (arbitrated 2026-10-18): '-' is the delimiter, so chain names and runIds
-    must not contain '-' — enforced where the key is created (a violating name
-    is rejected on the spot). Encoding and decoding live in one place as
-    inverse operations; they cannot drift apart.
-  description: >
-    One batch, one run. The run key embeds a per-launch runId, so progress
-    records from one launch are never confused with another's.
-  single_run: >
-    A2 (arbitrated 2026-10-18): a batch has exactly one run. The web UI and
-    the engine both address the same run — there is never a second, parallel
-    run for the same batch, and a repeat start for an active or finished run
-    is refused.
-state_slots:
-  - name: batchId
-    type: string
-    description: Batch identifier (== runId in the web demo).
-  - name: chainId
-    type: string
-    description: Which chain and round, e.g. "recharge-r1-b3".
-  - name: items
-    type: string[]
-    description: >
-      The batch items, encoded "chain:round:customerId" so one chain definition
-      can serve both the recharge and the purchase chain.
-  - name: context
-    type: map<string, string>
-    description: Free-form run context (batchId, chainId travel with it).
-  - name: generatedFile
-    type: batch-file.GeneratedFile
-    description: Produced by file-gen.
-    written_by: stage file-gen
-  - name: receipt
-    type: batch-file.UploadReceipt
-    description: Produced by upload.
-    written_by: stage upload
-  - name: ack
-    type: ack-result
-    description: Produced by wait-ack.
-    written_by: stage wait-ack
-  - name: responseFile
-    type: batch-file.ResponseFile
-    description: Produced by poll.
-    written_by: stage poll
-  - name: rawResults
-    type: string[]
-    description: Produced by parse.
-    written_by: stage parse
-  - name: classifications
-    type: classification[]
-    description: Produced by classify; consumed by the business closure.
-    written_by: stage classify
-  - name: lastStage
-    type: stage-id
-    description: Which stage completed last.
-lifecycle:
-  - { from: idle,     via: start-batch-run, to: running }
-  - { from: running,  via: run-completed,   to: completed }
-  - { from: running,  via: run-failed,      to: failed }
-  - { from: running,  via: simulate-crash,  to: recovering }
-  - { from: recovering, via: run-recovered, to: running }
-invariants:
-  - id: run-id-unique
-    description: One batch, one run; a second start for an active or finished run is rejected.
-    description_zh: 一批，一次运行；已在跑或已完工的批次再次启动会被拒绝。
-  - id: stages-in-order
-    description: Stages complete in pipeline order; after an interruption the run resumes from the breakpoint, skipping already-completed stages.
-    description_zh: 阶段按链顺序完成；中断后续跑从断点继续，跳过已完成的阶段。
-  - id: no-repeat-of-finished
-    description: >
-      A stage confirmed finished never runs again. A stage interrupted
-      mid-execution may run once more — each stage must tolerate being
-      executed twice without double effect.
-    description_zh: >
-      已确认完成的阶段永不重跑。中断时正在执行的阶段可能再跑一次——
-      每个阶段都要能承受"跑两次"而不产生双重效果。
-progress_recording:
-  rule: Every finished stage records its progress, including the full run state at that moment.
-  rule_zh: 每完成一阶段就记录进度，包含当时的完整运行状态。
-  recovery: After an interruption the run continues from the last recorded breakpoint.
-  recovery_zh: 中断后从最后记录的断点继续。
-  retention: Progress records are kept independently of the running process; rebuilding the process loses nothing.
-  retention_zh: 进度记录独立于运行进程保存；进程重建不丢失记录。
+name: "Batch Chain Run"
+order:
+  commands: ["start-batch-run","simulate-crash"]
+  events: ["run-started","stage-completed","run-completed","run-failed","run-recovered"]
+payload:
+  {
+    "name": "Batch Chain Run",
+    "name_zh": "批次链运行",
+    "description": "One execution of the six-stage batch chain for a single batch of items. Every completed stage records its progress (including the full run state at that moment), so if the run is interrupted it resumes from the breakpoint — finished stages are not repeated.",
+    "description_zh": "一批 items 的六阶段链的一次执行。每完成一阶段就记下进度（含当时的 完整运行状态），中途被打断后从断点继续——已完成的阶段不重复。",
+    "entity": "BatchChainRun",
+    "identifier": {
+      "name": "runId",
+      "dataType": "string",
+      "origin": "identity fields: runId — one batch, one run; the run key embeds a per-launch runId, so progress records from one launch are never confused with another's"
+    },
+    "identityDetail": {
+      "format": "bank-{runId}-{chain}-r{round}-b{index}",
+      "formatInvariant": "A4 (arbitrated 2026-10-18): '-' is the delimiter, so chain names and runIds must not contain '-' — enforced where the key is created (a violating name is rejected on the spot). Encoding and decoding live in one place as inverse operations; they cannot drift apart.",
+      "description": "One batch, one run. The run key embeds a per-launch runId, so progress records from one launch are never confused with another's.",
+      "singleRun": "A2 (arbitrated 2026-10-18): a batch has exactly one run. The web UI and the engine both address the same run — there is never a second, parallel run for the same batch, and a repeat start for an active or finished run is refused."
+    },
+    "stateFields": [
+      {
+        "name": "batchId",
+        "dataType": "string",
+        "description": "Batch identifier (== runId in the web demo)."
+      },
+      {
+        "name": "chainId",
+        "dataType": "string",
+        "description": "Which chain and round, e.g. \"recharge-r1-b3\"."
+      },
+      {
+        "name": "items",
+        "dataType": "string[]",
+        "description": "The batch items, encoded \"chain:round:customerId\" so one chain definition can serve both the recharge and the purchase chain."
+      },
+      {
+        "name": "context",
+        "dataType": "map<string, string>",
+        "description": "Free-form run context (batchId, chainId travel with it)."
+      },
+      {
+        "name": "generatedFile",
+        "dataType": "batch-file.GeneratedFile",
+        "description": "Produced by file-gen.",
+        "writtenBy": [
+          "stage file-gen"
+        ]
+      },
+      {
+        "name": "receipt",
+        "dataType": "batch-file.UploadReceipt",
+        "description": "Produced by upload.",
+        "writtenBy": [
+          "stage upload"
+        ]
+      },
+      {
+        "name": "ack",
+        "dataType": "ack-result",
+        "description": "Produced by wait-ack.",
+        "writtenBy": [
+          "stage wait-ack"
+        ]
+      },
+      {
+        "name": "responseFile",
+        "dataType": "batch-file.ResponseFile",
+        "description": "Produced by poll.",
+        "writtenBy": [
+          "stage poll"
+        ]
+      },
+      {
+        "name": "rawResults",
+        "dataType": "string[]",
+        "description": "Produced by parse.",
+        "writtenBy": [
+          "stage parse"
+        ]
+      },
+      {
+        "name": "classifications",
+        "dataType": "classification[]",
+        "description": "Produced by classify; consumed by the business closure.",
+        "writtenBy": [
+          "stage classify"
+        ]
+      },
+      {
+        "name": "lastStage",
+        "dataType": "stage-id",
+        "description": "Which stage completed last."
+      }
+    ],
+    "statusEnum": [
+      "idle",
+      "running",
+      "completed",
+      "failed",
+      "recovering"
+    ],
+    "statusTransitions": {
+      "start-batch-run": "running",
+      "run-completed": "completed",
+      "run-failed": "failed",
+      "simulate-crash": "recovering",
+      "run-recovered": "running"
+    },
+    "stateGates": {
+      "start-batch-run": {
+        "fromStates": [
+          "idle"
+        ],
+        "toState": "running"
+      },
+      "run-completed": {
+        "fromStates": [
+          "running"
+        ],
+        "toState": "completed"
+      },
+      "run-failed": {
+        "fromStates": [
+          "running"
+        ],
+        "toState": "failed"
+      },
+      "simulate-crash": {
+        "fromStates": [
+          "running"
+        ],
+        "toState": "recovering"
+      },
+      "run-recovered": {
+        "fromStates": [
+          "recovering"
+        ],
+        "toState": "running"
+      }
+    },
+    "aggregateRuleRefs": [
+      {
+        "ruleId": "run-id-unique",
+        "desc": "One batch, one run; a second start for an active or finished run is rejected.",
+        "desc_zh": "一批，一次运行；已在跑或已完工的批次再次启动会被拒绝。"
+      },
+      {
+        "ruleId": "stages-in-order",
+        "desc": "Stages complete in pipeline order; after an interruption the run resumes from the breakpoint, skipping already-completed stages.",
+        "desc_zh": "阶段按链顺序完成；中断后续跑从断点继续，跳过已完成的阶段。"
+      },
+      {
+        "ruleId": "no-repeat-of-finished",
+        "desc": "A stage confirmed finished never runs again. A stage interrupted mid-execution may run once more — each stage must tolerate being executed twice without double effect.",
+        "desc_zh": "已确认完成的阶段永不重跑。中断时正在执行的阶段可能再跑一次—— 每个阶段都要能承受\"跑两次\"而不产生双重效果。"
+      }
+    ],
+    "progressRecording": {
+      "rule": "Every finished stage records its progress, including the full run state at that moment.",
+      "rule_zh": "每完成一阶段就记录进度，包含当时的完整运行状态。",
+      "recovery": "After an interruption the run continues from the last recorded breakpoint.",
+      "recovery_zh": "中断后从最后记录的断点继续。",
+      "retention": "Progress records are kept independently of the running process; rebuilding the process loses nothing.",
+      "retention_zh": "进度记录独立于运行进程保存；进程重建不丢失记录。"
+    }
+  }

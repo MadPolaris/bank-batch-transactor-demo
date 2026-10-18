@@ -1,0 +1,35 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: field
+name: OrderEscalatedFields
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 15
+payload:
+  {
+    "type": "field",
+    "name": "OrderEscalatedFields",
+    "name_zh": "转人工字段",
+    "stage": "refining",
+    "description": "Fields carried by OrderEscalated.",
+    "description_zh": "OrderEscalated 携带的字段。",
+    "fields": [
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "customerId",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "ticketId",
+        "dataType": "string",
+        "description": ""
+      }
+    ]
+  }

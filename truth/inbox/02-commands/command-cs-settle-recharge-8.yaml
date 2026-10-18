@@ -1,0 +1,52 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: command
+name: SettleRecharge
+origin:
+  stage: commandStorming
+  board: reconstructed
+  seq: 8
+payload:
+  {
+    "type": "command",
+    "name": "SettleRecharge",
+    "id": "settle-recharge",
+    "name_zh": "充值结算",
+    "stage": "commandStorming",
+    "description": "A successfully classified recharge item settles: the customer account is credited. Feeds the purchase chain.",
+    "description_zh": "分类成功的充值项结算：客户账户入账。是申购链的上游。",
+    "info": {
+      "id": "settle-recharge",
+      "triggers": [
+        "policy: 批次业务收尾"
+      ],
+      "produces": [
+        "order-credited"
+      ],
+      "parameters": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": "recharge"
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "amount",
+          "dataType": "number",
+          "description": "入账金额"
+        }
+      ],
+      "guards": [
+        "订单未终态（第一次写入生效）",
+        "账务更新成功（最多自动重试一次）"
+      ]
+    },
+    "links": [
+      "event:OrderCredited"
+    ]
+  }

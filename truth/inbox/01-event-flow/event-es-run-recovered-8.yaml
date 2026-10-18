@@ -1,0 +1,34 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: event
+name: RunRecovered
+origin:
+  stage: eventStorming
+  board: reconstructed
+  seq: 8
+payload:
+  {
+    "type": "event",
+    "name": "RunRecovered",
+    "name_zh": "断点恢复",
+    "stage": "eventStorming",
+    "description": "After an interruption the run resumed from the last recorded breakpoint; already-completed stages were skipped, not re-run.",
+    "description_zh": "中断后运行从最后记录的断点续跑；已完成的阶段跳过不重做。",
+    "info": {
+      "timeline": "batch-chain",
+      "sequence": 3,
+      "fields": [
+        {
+          "name": "runId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "completedCount",
+          "dataType": "integer",
+          "description": "续跑时跳过的阶段数"
+        }
+      ]
+    }
+  }

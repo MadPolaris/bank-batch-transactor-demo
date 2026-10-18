@@ -1,0 +1,18 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: entity
+name: AckResult
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 0
+payload:
+  {
+    "type": "entity",
+    "name": "AckResult",
+    "name_zh": "确认结果",
+    "stage": "refining",
+    "description": "What the external system said after upload: Received (continue), Timeout → ACK_TIMEOUT, Rejected → ACK_REJECTED.",
+    "description_zh": "上传后外部系统的确认：收到（继续）、超时→ACK_TIMEOUT、拒绝→ACK_REJECTED。"
+  }

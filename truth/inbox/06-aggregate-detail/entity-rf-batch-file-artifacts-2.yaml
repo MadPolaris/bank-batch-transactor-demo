@@ -1,0 +1,18 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: entity
+name: BatchFileArtifacts
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 2
+payload:
+  {
+    "type": "entity",
+    "name": "BatchFileArtifacts",
+    "name_zh": "批量文件制品",
+    "stage": "refining",
+    "description": "The three file artifacts: GeneratedFile (file-gen), UploadReceipt (upload), ResponseFile (poll).",
+    "description_zh": "三种文件制品：批量文件（file-gen）、上传回执（upload）、响应文件（poll）。"
+  }

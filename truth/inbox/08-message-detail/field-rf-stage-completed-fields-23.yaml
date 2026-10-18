@@ -1,0 +1,30 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: field
+name: StageCompletedFields
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 23
+payload:
+  {
+    "type": "field",
+    "name": "StageCompletedFields",
+    "name_zh": "阶段完成字段",
+    "stage": "refining",
+    "description": "Fields carried by StageCompleted.",
+    "description_zh": "StageCompleted 携带的字段。",
+    "fields": [
+      {
+        "name": "stage",
+        "dataType": "string",
+        "description": "阶段名（断点）"
+      },
+      {
+        "name": "outputInfo",
+        "dataType": "map<string,string>",
+        "description": "阶段产出信息"
+      }
+    ]
+  }

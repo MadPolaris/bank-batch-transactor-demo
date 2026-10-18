@@ -1,0 +1,18 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: relation
+name: RechargeUpstreamOfPurchase
+origin:
+  stage: contextMapping
+  board: reconstructed
+  seq: 0
+payload:
+  {
+    "type": "relation",
+    "name": "RechargeUpstreamOfPurchase",
+    "name_zh": "充值链→申购链（上下游）",
+    "stage": "contextMapping",
+    "description": "上下文内上下游关系：充值链是上游，申购链是下游。已入账（credited）的充值客户被组进申购批次、作为新的运行入队；上游不直接写下游的账本，只交付'已入账客户名单'。",
+    "description_zh": "上下文内上下游关系：充值链是上游，申购链是下游。已入账（credited）的充值客户被组进申购批次、作为新的运行入队；上游不直接写下游的账本，只交付“已入账客户名单”。"
+  }

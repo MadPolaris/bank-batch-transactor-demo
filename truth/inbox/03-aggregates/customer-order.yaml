@@ -1,8 +1,0 @@
-# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
-kind: note
-type: aggregate
-name: CustomerOrder
-name_zh: 客户订单
-description: One customer's order in one chain — one row of the terminal ledger. Every (chain × customer)
-  lands in exactly one terminal state; first write wins.
-description_zh: 一条链里一个客户的一笔订单——终态账本的一行。每个（链×客户）有且只有一个终态，第一次写入生效。

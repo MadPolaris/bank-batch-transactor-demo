@@ -1,0 +1,21 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: story
+name: StartBatchRun
+origin:
+  stage: storyMapping
+  board: reconstructed
+  seq: 2
+payload:
+  {
+    "type": "story",
+    "name": "StartBatchRun",
+    "name_zh": "启动批量跑批",
+    "stage": "storyMapping",
+    "description": "As 运营人员: 一键启动一批充值/申购跑批 — 把当天的批量请求发给银行/基金公司.",
+    "description_zh": "运营人员一键启动一批充值/申购跑批，把当天的批量请求发给银行/基金公司。",
+    "role": "运营人员",
+    "goal": "一键启动一批充值/申购跑批",
+    "benefit": "把当天的批量请求发给银行/基金公司"
+  }

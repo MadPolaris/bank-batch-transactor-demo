@@ -1,0 +1,39 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: event
+name: OrderRejected
+origin:
+  stage: eventStorming
+  board: reconstructed
+  seq: 5
+payload:
+  {
+    "type": "event",
+    "name": "OrderRejected",
+    "name_zh": "订单放弃",
+    "stage": "eventStorming",
+    "description": "A failed item was routed to abandon: terminal, no retry, no human. First write wins.",
+    "description_zh": "失败项被路由为放弃：终态，不重试、不转人工。第一次写入生效。",
+    "info": {
+      "timeline": "batch-chain",
+      "sequence": 8,
+      "fields": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "reason",
+          "dataType": "string",
+          "description": "放弃原因"
+        }
+      ]
+    }
+  }

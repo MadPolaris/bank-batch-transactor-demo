@@ -1,0 +1,34 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: event
+name: StageCompleted
+origin:
+  stage: eventStorming
+  board: reconstructed
+  seq: 10
+payload:
+  {
+    "type": "event",
+    "name": "StageCompleted",
+    "name_zh": "阶段完成",
+    "stage": "eventStorming",
+    "description": "One of the six chain stages finished cleanly (file-gen → upload → wait-ack → poll → parse → classify, in order). Records which stage finished and its output info plus the full run state — this is the resume breakpoint.",
+    "description_zh": "六阶段链中的某阶段干净完成（file-gen→upload→wait-ack→poll→parse→classify，按序）。记下完成的阶段、阶段产出信息与当时完整运行状态——这就是断点。",
+    "info": {
+      "timeline": "batch-chain",
+      "sequence": 2,
+      "fields": [
+        {
+          "name": "stage",
+          "dataType": "string",
+          "description": "阶段名，如 upload（断点）"
+        },
+        {
+          "name": "outputInfo",
+          "dataType": "map",
+          "description": "阶段产出信息"
+        }
+      ]
+    }
+  }

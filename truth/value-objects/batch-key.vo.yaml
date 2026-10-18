@@ -1,32 +1,46 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: value-object
-id: batch-key
-name: Batch Key
-name_zh: 批次键
-description: >
-  The business key of one batch run: `bank-{runId}-{chain}-r{round}-b{index}`.
-  A4 (arbitrated 2026-10-18): '-' is the delimiter, so chain names and runIds
-  must not contain '-'. The invariant is enforced where the key is created —
-  a violating name is rejected on the spot. Encoding and decoding live in one
-  place as inverse operations, so they cannot drift apart.
-description_zh: >
-  一次批次运行的业务键：`bank-{runId}-{chain}-r{round}-b{index}`。
-  A4（2026-10-18 仲裁）：'-' 是分隔符，因此链名与运行号都不得包含 '-'。
-  该不变量在键创建处强制——违规的名字当场被拒绝。编码与解码在同一处
-  互为逆操作，不可能互相漂移。
-fields:
-  - { name: runId, type: string, description: "Per-launch token; progress records from one launch are never confused with another's. Must not contain '-'." }
-  - { name: chain, type: string, description: "recharge | purchase. Must not contain '-' (enforced at creation)." }
-  - { name: round, type: integer, description: "1-based rebatch round." }
-  - { name: index, type: integer, description: "0-based batch index within the round." }
-invariants:
-  - id: delimiter-exclusion
-    description: >
-      Neither runId nor chain may contain '-'. Violations are rejected where
-      the key is created (fail fast), not where it is parsed.
-    description_zh: runId 与链名都不得含 '-'。违规在键创建处被拒绝（快速失败），而不是在解析处。
-  - id: encode-decode-inverse
-    description: >
-      decode(encode(runId, chain, round, index)) == (runId, chain, round, index),
-      always. A single owner for both directions.
-    description_zh: 编码解码互为逆操作，恒成立。两个方向同一处负责。
+name: "Batch Key"
+payload:
+  {
+    "id": "batch-key",
+    "name": "Batch Key",
+    "name_zh": "批次键",
+    "description": "The business key of one batch run: `bank-{runId}-{chain}-r{round}-b{index}`. A4 (arbitrated 2026-10-18): '-' is the delimiter, so chain names and runIds must not contain '-'. The invariant is enforced where the key is created — a violating name is rejected on the spot. Encoding and decoding live in one place as inverse operations, so they cannot drift apart.",
+    "description_zh": "一次批次运行的业务键：`bank-{runId}-{chain}-r{round}-b{index}`。 A4（2026-10-18 仲裁）：'-' 是分隔符，因此链名与运行号都不得包含 '-'。 该不变量在键创建处强制——违规的名字当场被拒绝。编码与解码在同一处 互为逆操作，不可能互相漂移。",
+    "fields": [
+      {
+        "name": "runId",
+        "dataType": "string",
+        "description": "Per-launch token; progress records from one launch are never confused with another's. Must not contain '-'."
+      },
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": "recharge | purchase. Must not contain '-' (enforced at creation)."
+      },
+      {
+        "name": "round",
+        "dataType": "integer",
+        "description": "1-based rebatch round."
+      },
+      {
+        "name": "index",
+        "dataType": "integer",
+        "description": "0-based batch index within the round."
+      }
+    ],
+    "invariants": [
+      {
+        "id": "delimiter-exclusion",
+        "description": "Neither runId nor chain may contain '-'. Violations are rejected where the key is created (fail fast), not where it is parsed.",
+        "description_zh": "runId 与链名都不得含 '-'。违规在键创建处被拒绝（快速失败），而不是在解析处。"
+      },
+      {
+        "id": "encode-decode-inverse",
+        "description": "decode(encode(runId, chain, round, index)) == (runId, chain, round, index), always. A single owner for both directions.",
+        "description_zh": "编码解码互为逆操作，恒成立。两个方向同一处负责。"
+      }
+    ]
+  }

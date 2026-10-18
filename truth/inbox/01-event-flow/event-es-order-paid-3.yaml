@@ -1,0 +1,44 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: event
+name: OrderPaid
+origin:
+  stage: eventStorming
+  board: reconstructed
+  seq: 3
+payload:
+  {
+    "type": "event",
+    "name": "OrderPaid",
+    "name_zh": "申购成交",
+    "stage": "eventStorming",
+    "description": "A successfully classified purchase item settled: balance debited, fund position increased. Idempotent by customerId.",
+    "description_zh": "分类成功的申购项成交：余额扣减、基金持仓增加。按 customerId 幂等。",
+    "info": {
+      "timeline": "batch-chain",
+      "sequence": 7,
+      "fields": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": "purchase"
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "amount",
+          "dataType": "number",
+          "description": ""
+        },
+        {
+          "name": "fund",
+          "dataType": "string",
+          "description": "如 成长混合A"
+        }
+      ]
+    }
+  }

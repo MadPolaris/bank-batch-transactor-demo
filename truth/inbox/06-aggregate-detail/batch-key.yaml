@@ -1,8 +1,0 @@
-# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
-kind: note
-type: valueObject
-name: BatchKey
-name_zh: 批次键
-description: 'Structured run key: bank-{runId}-{chain}-r{round}-b{index}. ''-'' is the delimiter, so chain
-  names must not contain it — enforced at creation.'
-description_zh: 结构化运行键：bank-{runId}-{chain}-r{round}-b{index}。'-' 是分隔符，chain 名不得包含，创建时强制校验。

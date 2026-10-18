@@ -1,0 +1,26 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: story
+name: CrashRecoveryDemo
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 30
+payload:
+  {
+    "type": "story",
+    "name": "CrashRecoveryDemo",
+    "name_zh": "宕机恢复演示",
+    "stage": "refining",
+    "description": "CrashRecoveryDemo: 点宕机按钮：进程停止、进度记录保留; 下一条指令重启进程; 运行从断点续跑，已完成阶段跳过.",
+    "description_zh": "宕机恢复演示：点宕机按钮：进程停止、进度记录保留；下一条指令重启进程；运行从断点续跑，已完成阶段跳过。",
+    "preconditions": [
+      "有运行中的批次"
+    ],
+    "steps": [
+      "点宕机按钮：进程停止、进度记录保留",
+      "下一条指令重启进程",
+      "运行从断点续跑，已完成阶段跳过"
+    ]
+  }

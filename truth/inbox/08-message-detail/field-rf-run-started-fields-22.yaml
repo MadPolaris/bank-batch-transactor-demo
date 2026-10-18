@@ -1,0 +1,35 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: field
+name: RunStartedFields
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 22
+payload:
+  {
+    "type": "field",
+    "name": "RunStartedFields",
+    "name_zh": "批次启动字段",
+    "stage": "refining",
+    "description": "Fields carried by RunStarted.",
+    "description_zh": "RunStarted 携带的字段。",
+    "fields": [
+      {
+        "name": "runId",
+        "dataType": "string",
+        "description": "本次运行标识"
+      },
+      {
+        "name": "chainId",
+        "dataType": "string",
+        "description": "链/轮次/批次"
+      },
+      {
+        "name": "items",
+        "dataType": "string[]",
+        "description": "chain:round:customerId"
+      }
+    ]
+  }

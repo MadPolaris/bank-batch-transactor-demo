@@ -1,0 +1,40 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: field
+name: RunFailedFields
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 20
+payload:
+  {
+    "type": "field",
+    "name": "RunFailedFields",
+    "name_zh": "运行失败字段",
+    "stage": "refining",
+    "description": "Fields carried by RunFailed.",
+    "description_zh": "RunFailed 携带的字段。",
+    "fields": [
+      {
+        "name": "runId",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "stage",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "errorCode",
+        "dataType": "string",
+        "description": ""
+      },
+      {
+        "name": "detail",
+        "dataType": "string",
+        "description": ""
+      }
+    ]
+  }

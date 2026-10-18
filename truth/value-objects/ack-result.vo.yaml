@@ -1,23 +1,41 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: value-object
-id: ack-result
-name: Ack Result
-name_zh: 确认结果
-description: >
-  What the external system said after receiving the uploaded file.
-  Timeout and Rejected become classified stage failures (ACK_TIMEOUT /
-  ACK_REJECTED); Received lets the chain continue.
-description_zh: >
-  文件上传后外部系统的确认。超时与拒绝会变成已分类的阶段失败
-  （ACK_TIMEOUT / ACK_REJECTED）；收到确认则链继续。
-variants:
-  - name: AckReceived
-    description: External system acknowledged receipt.
-  - name: AckTimeout
-    description: Silence past the wait — classified failure ACK_TIMEOUT.
-    fields:
-      - { name: waitMs, type: integer, description: How long we waited }
-  - name: AckRejected
-    description: External system refused the file — classified failure ACK_REJECTED.
-    fields:
-      - { name: reason, type: string, description: Rejection reason }
+name: "Ack Result"
+payload:
+  {
+    "id": "ack-result",
+    "name": "Ack Result",
+    "name_zh": "确认结果",
+    "description": "What the external system said after receiving the uploaded file. Timeout and Rejected become classified stage failures (ACK_TIMEOUT / ACK_REJECTED); Received lets the chain continue.",
+    "description_zh": "文件上传后外部系统的确认。超时与拒绝会变成已分类的阶段失败 （ACK_TIMEOUT / ACK_REJECTED）；收到确认则链继续。",
+    "fields": [],
+    "variants": [
+      {
+        "name": "AckReceived",
+        "description": "External system acknowledged receipt."
+      },
+      {
+        "name": "AckTimeout",
+        "description": "Silence past the wait — classified failure ACK_TIMEOUT.",
+        "fields": [
+          {
+            "name": "waitMs",
+            "dataType": "integer",
+            "description": "How long we waited"
+          }
+        ]
+      },
+      {
+        "name": "AckRejected",
+        "description": "External system refused the file — classified failure ACK_REJECTED.",
+        "fields": [
+          {
+            "name": "reason",
+            "dataType": "string",
+            "description": "Rejection reason"
+          }
+        ]
+      }
+    ]
+  }

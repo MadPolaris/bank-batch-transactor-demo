@@ -1,32 +1,54 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: scenario
 id: console-demo
-name: Console Demo Script
-name_zh: 命令行演示剧本
-description: >
-  The standalone runnable (sbt run): the same six-stage chain against a
-  simulated bank host, with printing hooks. Two scenarios — the happy path
-  and the ack-timeout failure path — the smallest possible tour of the
-  chain's behavior.
-description_zh: >
-  独立可运行版本（sbt run）：同一条六阶段链，对接模拟银行，带打印钩子。
-  两个场景——happy path 与 ack 超时失败路径——链行为的最小巡览。
-scale:
-  items: 3
-  note: in-process only — no persistent progress records
-chains:
-  - id: demo-chain
-    name: Demo chain
-    description: The six-stage chain against a simulated bank host (chainId "recharge").
-outcome_rules:
-  - scenario: happy-path
-    rules:
-      - { when: "raw starts with OK:",      then: Success }
-      - { when: "raw starts with PENDING:", then: "Suspicious(PENDING, bank has not settled yet)" }
-      - { when: otherwise,                  then: "Failure(BANK_REJECT)" }
-  - scenario: ack-timeout
-    rules:
-      - { when: "external system stays silent", then: "wait-ack fails with ACK_TIMEOUT → batch aborted" }
-    note: A recovery rule could be installed to resolve-and-continue instead.
-observability:
-  description: Printing hooks log the breakpoint + output info per stage (>> started / << done / !! FAILED).
+name: "Console Demo Script"
+name_zh: "命令行演示剧本"
+description: "The standalone runnable (sbt run): the same six-stage chain against a simulated bank host, with printing hooks. Two scenarios — the happy path and the ack-timeout failure path — the smallest possible tour of the chain's behavior."
+description_zh: "独立可运行版本（sbt run）：同一条六阶段链，对接模拟银行，带打印钩子。 两个场景——happy path 与 ack 超时失败路径——链行为的最小巡览。"
+script:
+  {
+    "scale": {
+      "items": 3,
+      "note": "in-process only — no persistent progress records"
+    },
+    "chains": [
+      {
+        "id": "demo-chain",
+        "name": "Demo chain",
+        "description": "The six-stage chain against a simulated bank host (chainId \"recharge\")."
+      }
+    ],
+    "outcome_rules": [
+      {
+        "scenario": "happy-path",
+        "rules": [
+          {
+            "when": "raw starts with OK:",
+            "then": "Success"
+          },
+          {
+            "when": "raw starts with PENDING:",
+            "then": "Suspicious(PENDING, bank has not settled yet)"
+          },
+          {
+            "when": "otherwise",
+            "then": "Failure(BANK_REJECT)"
+          }
+        ]
+      },
+      {
+        "scenario": "ack-timeout",
+        "rules": [
+          {
+            "when": "external system stays silent",
+            "then": "wait-ack fails with ACK_TIMEOUT → batch aborted"
+          }
+        ],
+        "note": "A recovery rule could be installed to resolve-and-continue instead."
+      }
+    ],
+    "observability": {
+      "description": "Printing hooks log the breakpoint + output info per stage (>> started / << done / !! FAILED)."
+    }
+  }

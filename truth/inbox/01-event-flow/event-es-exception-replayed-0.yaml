@@ -1,0 +1,44 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: event
+name: ExceptionReplayed
+origin:
+  stage: eventStorming
+  board: reconstructed
+  seq: 0
+payload:
+  {
+    "type": "event",
+    "name": "ExceptionReplayed",
+    "name_zh": "人工重放完成",
+    "stage": "eventStorming",
+    "description": "A human reviewed a parked order and replayed it: the money moved (no fault injection this time), and the ledger moved except_pool → credited/paid together with the money — money, ledger and event feed always agree.",
+    "description_zh": "人工复核异常池订单后重放：资金确实到账（这次不注入故障），账本随资金一起从 except_pool 变为 credited/paid——钱、账、事件流永远一致。",
+    "info": {
+      "timeline": "batch-chain",
+      "sequence": 11,
+      "fields": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "moneyMoved",
+          "dataType": "boolean",
+          "description": "true"
+        },
+        {
+          "name": "newTerminal",
+          "dataType": "string",
+          "description": "credited 或 paid"
+        }
+      ]
+    }
+  }

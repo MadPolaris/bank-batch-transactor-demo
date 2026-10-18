@@ -1,0 +1,100 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: value-object
+name: "Result Classification"
+payload:
+  {
+    "id": "classification",
+    "name": "Result Classification",
+    "name_zh": "结果三分类",
+    "description": "Every (raw result × item) pair lands in exactly one of three buckets. Success and failure flow straight through; suspicious items must be reconfirmed (policy reconfirm-rule) before they get a final state.",
+    "description_zh": "每个（原始结果 × item）有且仅落入三类之一。成功与失败直接分流； 可疑项必须经过复核（policy reconfirm-rule）才能定终态。",
+    "fields": [],
+    "variants": [
+      {
+        "name": "Success",
+        "description": "The external system accepted the item.",
+        "fields": [
+          {
+            "name": "item",
+            "dataType": "string",
+            "description": "Item identifier"
+          },
+          {
+            "name": "rawResult",
+            "dataType": "string",
+            "description": "The raw result payload"
+          }
+        ]
+      },
+      {
+        "name": "Failure",
+        "description": "The external system rejected the item, or verification failed it.",
+        "fields": [
+          {
+            "name": "item",
+            "dataType": "string",
+            "description": "Item identifier"
+          },
+          {
+            "name": "reason",
+            "dataType": "failure-reason",
+            "description": "ref value-object (inline below)"
+          }
+        ]
+      },
+      {
+        "name": "Suspicious",
+        "description": "Uncertain — needs reconfirmation before a final state.",
+        "fields": [
+          {
+            "name": "item",
+            "dataType": "string",
+            "description": "Item identifier"
+          },
+          {
+            "name": "reason",
+            "dataType": "suspicious-reason",
+            "description": "ref value-object (inline below)"
+          }
+        ]
+      }
+    ],
+    "inline_types": [
+      {
+        "name": "failure-reason",
+        "fields": [
+          {
+            "name": "code",
+            "dataType": "string",
+            "description": "Machine code, e.g. BALANCE_INSUFFICIENT"
+          },
+          {
+            "name": "message",
+            "dataType": "string",
+            "description": "Human-readable message"
+          },
+          {
+            "name": "suggestedAction",
+            "dataType": "next-step",
+            "description": "Optional hint from the classifier (ref next-step); not part of the progress record"
+          }
+        ]
+      },
+      {
+        "name": "suspicious-reason",
+        "fields": [
+          {
+            "name": "code",
+            "dataType": "string",
+            "description": "Machine code, e.g. TIMEOUT"
+          },
+          {
+            "name": "message",
+            "dataType": "string",
+            "description": "Human-readable message"
+          }
+        ]
+      }
+    ]
+  }

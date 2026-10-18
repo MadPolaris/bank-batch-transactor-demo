@@ -1,30 +1,60 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: slice
-id: settle-recharge
-name: Settle Recharge
-name_zh: 充值入账
-description: >
-  A successfully classified recharge item settles: the customer's account is
-  credited. Idempotent by customerId — already-terminal orders are skipped.
-  Recharge settlement is what feeds the purchase chain (credited customers are
-  enqueued for purchase).
-description_zh: >
-  分类成功的充值项入账：客户账户增加金额。按 customerId 幂等，
-  已是终态的订单跳过。充值入账是申购链的上游（已入账客户被送入申购）。
-aggregate: customer-order
-parameters:
-  - { name: chain, type: string, description: '"recharge"' }
-  - { name: customerId, type: string, description: Customer identifier }
-  - { name: amount, type: number, description: Amount to credit }
-guards:
-  - description: order not already terminal (first write wins)
-  - description: account update succeeded (after at most one auto-retry)
-produces:
-  - order-credited
+aggregate: "Customer Order"
+command: settle-recharge
+payload:
+  {
+    "name": "settle-recharge",
+    "name_zh": "充值入账",
+    "description": "A successfully classified recharge item settles: the customer's account is credited. Idempotent by customerId — already-terminal orders are skipped. Recharge settlement is what feeds the purchase chain (credited customers are enqueued for purchase).",
+    "description_zh": "分类成功的充值项入账：客户账户增加金额。按 customerId 幂等， 已是终态的订单跳过。充值入账是申购链的上游（已入账客户被送入申购）。",
+    "parameters": [
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": "\"recharge\""
+      },
+      {
+        "name": "customerId",
+        "dataType": "string",
+        "description": "Customer identifier"
+      },
+      {
+        "name": "amount",
+        "dataType": "number",
+        "description": "Amount to credit"
+      }
+    ],
+    "guards": [
+      "order not already terminal (first write wins)",
+      "account update succeeded (after at most one auto-retry)"
+    ],
+    "produces": [
+      "order-credited"
+    ]
+  }
 events:
-  order-credited:
-    description: The recharge settled; the customer can now enter the purchase chain.
-    payload:
-      - { name: chain, type: string, description: '"recharge"' }
-      - { name: customerId, type: string, description: Customer identifier }
-      - { name: amount, type: number, description: Credited amount }
+  {
+    "order-credited": {
+      "name": "order-credited",
+      "description": "The recharge settled; the customer can now enter the purchase chain.",
+      "payloads": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": "\"recharge\""
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": "Customer identifier"
+        },
+        {
+          "name": "amount",
+          "dataType": "number",
+          "description": "Credited amount"
+        }
+      ]
+    }
+  }

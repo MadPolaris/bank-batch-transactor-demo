@@ -1,0 +1,18 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: entity
+name: RebatchPolicy
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 10
+payload:
+  {
+    "type": "entity",
+    "name": "RebatchPolicy",
+    "name_zh": "重批策略",
+    "stage": "refining",
+    "description": "Business parameters for failure routing: retry budget (maxRetries), per-code action overrides, default cooldown.",
+    "description_zh": "失败路由的业务参数：重试预算、按错误码的动作覆盖、默认冷却。"
+  }

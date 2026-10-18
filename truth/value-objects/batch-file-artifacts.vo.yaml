@@ -1,0 +1,88 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: value-object
+name: "Batch File Artifacts"
+payload:
+  {
+    "id": "batch-file",
+    "name": "Batch File Artifacts",
+    "name_zh": "批量文件制品",
+    "description": "The three file artifacts that flow through the chain: the generated batch file, the upload receipt, and the external system's response file. These are the per-stage state slots (see aggregate batch-chain-run).",
+    "description_zh": "流经链的三种文件制品：生成的批量文件、上传回执、外部系统的响应文件。 它们就是各阶段的状态槽位（见 aggregate batch-chain-run）。",
+    "fields": [],
+    "variants": [
+      {
+        "name": "GeneratedFile",
+        "description": "The transfer file encoded from the batch items (written by file-gen).",
+        "fields": [
+          {
+            "name": "localPath",
+            "dataType": "string",
+            "description": "Local path"
+          },
+          {
+            "name": "fileName",
+            "dataType": "string",
+            "description": "File name"
+          },
+          {
+            "name": "byteSize",
+            "dataType": "integer",
+            "description": "Size in bytes"
+          },
+          {
+            "name": "encoding",
+            "dataType": "string",
+            "description": "Encoding/format, e.g. dat"
+          }
+        ]
+      },
+      {
+        "name": "UploadReceipt",
+        "description": "Proof the external system received the file (written by upload).",
+        "fields": [
+          {
+            "name": "remotePath",
+            "dataType": "string",
+            "description": "Remote path"
+          },
+          {
+            "name": "bytesTransferred",
+            "dataType": "integer",
+            "description": "Bytes sent"
+          },
+          {
+            "name": "timestamp",
+            "dataType": "integer",
+            "description": "Upload time (epoch ms)"
+          }
+        ]
+      },
+      {
+        "name": "ResponseFile",
+        "description": "The external system's processing result (written by poll).",
+        "fields": [
+          {
+            "name": "localPath",
+            "dataType": "string",
+            "description": "Local path"
+          },
+          {
+            "name": "fileName",
+            "dataType": "string",
+            "description": "File name"
+          },
+          {
+            "name": "byteSize",
+            "dataType": "integer",
+            "description": "Size in bytes"
+          },
+          {
+            "name": "content",
+            "dataType": "bytes",
+            "description": "Raw content"
+          }
+        ]
+      }
+    ]
+  }

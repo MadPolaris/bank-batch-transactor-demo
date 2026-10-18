@@ -17,24 +17,25 @@ reconfirmed, and every customer order lands in exactly one terminal state.
 
 | Directory | What's in it |
 |---|---|
-| `tree.yaml` | Root manifest: name, version, provenance, full index |
-| `types.yaml` | The **type vocabulary** — the 7 record kinds every file uses |
+| `workshop.yaml` | Root manifest: schema version, workshop name, session order |
 | `aggregates/` | The two consistency boundaries: `batch-chain-run`, `customer-order` |
 | `pipelines/` | The six-stage chain definition (stage order, slots, failure codes) |
 | `value-objects/` | Shared immutable domain types (classification, next-step, policies…) |
 | `policies/` | Reactive domain rules (routing, reconfirm, business closure, ledger invariant) |
 | `read-models/` | What the web UI serves (stats, exception pool, event feed) |
 | `scenarios/` | The scale-demo script (100k customers, deterministic outcomes) |
-| `tools/` | `validate-tree.py` — the machine gate (see below) |
+| `inbox/` | The 13 workshop products (event flow … read models), one dir per product |
 
 Each directory has its own `README.md`. Every atom file starts with
-`kind` / `id` / `name` / `description` — read those four lines and you know what it is.
+`kind` — read it plus `name` and you know what it is. (Format migrated to
+truthsrc v0.4 on 2026-10-18 — see `MIGRATION-NOTES.md`.)
 
 ## Conventions
 
 - **Stable IDs, never copied text.** Cross-references use `id` (e.g. `aggregate: batch-chain-run`,
   `event: stage-completed`). If a name changes, the id stays.
-- **One file = one typed record.** The `kind` comes from `types.yaml`; the validator
+- **One file = one typed record.** The `kind` comes from the truthsrc v0.4 vocabulary
+  (see `zhongdj/metarch-truthsrc` `SCHEMA.md`); the validator
   enforces required fields per kind.
 - **Chinese alongside English** where the concept is domain-heavy (recharge/purchase
   vocabulary), following the repo's `README-zh.md` precedent.
@@ -43,12 +44,16 @@ Each directory has its own `README.md`. Every atom file starts with
 
 ## Machine gate
 
+The toolchain lives in `zhongdj/metarch-truthsrc` (not in this repo):
+
 ```bash
-python3 truth/tools/validate-tree.py truth/
+node bin/truthsrc.js validate --tree <path-to>/truth
+node bin/truthsrc.js roundtrip --tree <path-to>/truth
 ```
 
-Checks: every file parses, kinds/ids valid, ids unique, all cross-references resolve,
-every aggregate has ≥1 slice, every policy trigger resolves to a produced event.
+`validate` is the structural gate — 0 hard errors required (notices annotate
+modeling quality). `roundtrip` proves `compile ∘ decompose` is byte-identical:
+the tree is the only edit surface; `canonical.json` is a pure projection.
 Humans decide domain truth; the tool only reports structural breakage.
 
 ## What this tree is NOT

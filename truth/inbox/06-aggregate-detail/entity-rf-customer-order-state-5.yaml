@@ -1,0 +1,18 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: entity
+name: CustomerOrderState
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 5
+payload:
+  {
+    "type": "entity",
+    "name": "CustomerOrderState",
+    "name_zh": "客户订单状态",
+    "stage": "refining",
+    "description": "State slots: chain (recharge|purchase), customerId (idempotency key), terminalState (credited|paid|rejected|manual|except_pool; unset while in flight), amount.",
+    "description_zh": "状态槽位：chain（recharge|purchase）、customerId（幂等键）、terminalState（credited|paid|rejected|manual|except_pool，在途时未定）、amount。"
+  }

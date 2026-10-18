@@ -1,80 +1,120 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: aggregate
-id: customer-order
-name: Customer Order
-name_zh: 客户订单
-description: >
-  One customer's order in one chain — one row of the terminal ledger. Every
-  (chain × customer) pair lands in exactly one terminal state; the first write
-  wins and later duplicates (rebatch re-runs, replays) are skipped. This is the
-  unit the web UI's "balanced" check reconciles against.
-description_zh: >
-  一条链里一个客户的一笔订单——终态账本的一行。每个（链 × 客户）有且只有
-  一个终态；第一次写入生效，重批重跑等重复写入会被跳过。Web UI 的
-  "balanced" 对账就是对着它算的。
-identity:
-  fields: [chain, customerId]
-  description: >
-    customerId is the idempotency key within a chain. (chain, customerId) is
-    the grain of the terminal ledger.
-state_slots:
-  - name: chain
-    type: string
-    description: "recharge or purchase"
-  - name: customerId
-    type: string
-    description: Customer identifier (deterministic UUID in the demo).
-  - name: terminalState
-    type: string
-    description: >
-      Exactly one of: recharge → credited | rejected | manual | except_pool;
-      purchase → paid | rejected | manual | except_pool. Unset while in flight.
-  - name: amount
-    type: number
-    description: Order amount.
-lifecycle:
-  - { from: in-flight, via: settle-recharge,        to: credited }
-  - { from: in-flight, via: settle-purchase,        to: paid }
-  - { from: in-flight, via: abandon-order,          to: rejected }
-  - { from: in-flight, via: escalate-to-manual,     to: manual }
-  - { from: in-flight, via: park-in-exception-pool, to: except_pool }
-  - { from: except_pool, via: replay-exception,     to: credited }
-  - { from: except_pool, via: replay-exception,     to: paid }
-  # A1 (arbitrated 2026-10-18): replay success is a legal transition
-  # except_pool → credited/paid. The ledger and the money move together or
-  # not at all — money, ledger, and event feed always agree.
-invariants:
-  - id: exactly-once-terminal
-    description: >
-      First terminal write wins. A customer already terminal is never settled
-      again — rebatch re-runs and double classifications are skipped by
-      customerId.
-    description_zh: >
-      终态第一次写入生效。已是终态的客户不再结算——重批重跑与重复分类
-      都按 customerId 跳过。
-  - id: balanced-ledger
-    description: >
-      entered == inFlight + credited/paid + rejected + manual + except_pool,
-      per chain. The stats view asserts this.
-    description_zh: >
-      每条链：进入数 == 在途数 + 各终态数之和。统计页断言此等式。
-ledger_durability:
-  rule: >
-    The terminal ledger is a read model, not a second write model. It is
-    rebuilt from the batch runs' progress records whenever the service
-    (re)starts.
-  rule_zh: >
-    终态账本是读模型，不是第二套写模型。服务每次（重）启，都从各批次
-    的进度记录重建账本。
-  rebuild: >
-    A3 (arbitrated 2026-10-18): on (re)start, the service replays the latest
-    runs' progress records (which carry the full classifications) through the
-    terminal-decision rules — the same rules the live business closure uses,
-    by construction — and restores terminal states, the seen-set, and the
-    exception pool. A service crash no longer loses the ledger; the progress
-    records are the single source of truth.
-  rebuild_zh: >
-    A3（2026-10-18 仲裁）：（重）启时，服务把最近各批次的进度记录
-    （含完整分类结果）按终态判定规则重放一遍——这套规则与实时业务收尾
-    是同一套（同一份规则，不是两份拷贝）——恢复终态、已见集合与异常池。
-    服务宕机不再丢失账本；进度记录是唯一的事实来源。
+name: "Customer Order"
+order:
+  commands: ["settle-recharge","settle-purchase","abandon-order","escalate-to-manual","park-in-exception-pool","replay-exception"]
+  events: ["order-credited","order-paid","order-rejected","order-escalated","order-parked-in-exception-pool","exception-replayed"]
+payload:
+  {
+    "name": "Customer Order",
+    "name_zh": "客户订单",
+    "description": "One customer's order in one chain — one row of the terminal ledger. Every (chain × customer) pair lands in exactly one terminal state; the first write wins and later duplicates (rebatch re-runs, replays) are skipped. This is the unit the web UI's \"balanced\" check reconciles against.",
+    "description_zh": "一条链里一个客户的一笔订单——终态账本的一行。每个（链 × 客户）有且只有 一个终态；第一次写入生效，重批重跑等重复写入会被跳过。Web UI 的 \"balanced\" 对账就是对着它算的。",
+    "entity": "CustomerOrder",
+    "identifier": {
+      "name": "customerId",
+      "dataType": "string",
+      "origin": "identity fields: chain, customerId — (chain, customerId) is the grain of the terminal ledger; customerId is the idempotency key within a chain"
+    },
+    "stateFields": [
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": "recharge or purchase"
+      },
+      {
+        "name": "customerId",
+        "dataType": "string",
+        "description": "Customer identifier (deterministic UUID in the demo)."
+      },
+      {
+        "name": "terminalState",
+        "dataType": "string",
+        "description": "Exactly one of: recharge → credited | rejected | manual | except_pool; purchase → paid | rejected | manual | except_pool. Unset while in flight."
+      },
+      {
+        "name": "amount",
+        "dataType": "number",
+        "description": "Order amount."
+      }
+    ],
+    "statusEnum": [
+      "credited",
+      "paid",
+      "rejected",
+      "manual",
+      "except_pool"
+    ],
+    "statusTransitions": {
+      "settle-recharge": "credited",
+      "settle-purchase": "paid",
+      "abandon-order": "rejected",
+      "escalate-to-manual": "manual",
+      "park-in-exception-pool": "except_pool",
+      "replay-exception": [
+        "credited",
+        "paid"
+      ]
+    },
+    "stateGates": {
+      "settle-recharge": {
+        "fromStates": [
+          "in-flight"
+        ],
+        "toState": "credited"
+      },
+      "settle-purchase": {
+        "fromStates": [
+          "in-flight"
+        ],
+        "toState": "paid"
+      },
+      "abandon-order": {
+        "fromStates": [
+          "in-flight"
+        ],
+        "toState": "rejected"
+      },
+      "escalate-to-manual": {
+        "fromStates": [
+          "in-flight"
+        ],
+        "toState": "manual"
+      },
+      "park-in-exception-pool": {
+        "fromStates": [
+          "in-flight"
+        ],
+        "toState": "except_pool"
+      },
+      "replay-exception": {
+        "fromStates": [
+          "except_pool"
+        ],
+        "toState": [
+          "credited",
+          "paid"
+        ],
+        "note": "A1 (arbitrated 2026-10-18): replay success is a legal transition except_pool → credited/paid. The ledger and the money move together or not at all — money, ledger, and event feed always agree."
+      }
+    },
+    "aggregateRuleRefs": [
+      {
+        "ruleId": "exactly-once-terminal",
+        "desc": "First terminal write wins. A customer already terminal is never settled again — rebatch re-runs and double classifications are skipped by customerId.",
+        "desc_zh": "终态第一次写入生效。已是终态的客户不再结算——重批重跑与重复分类 都按 customerId 跳过。"
+      },
+      {
+        "ruleId": "balanced-ledger",
+        "desc": "entered == inFlight + credited/paid + rejected + manual + except_pool, per chain. The stats view asserts this.",
+        "desc_zh": "每条链：进入数 == 在途数 + 各终态数之和。统计页断言此等式。"
+      }
+    ],
+    "ledgerDurability": {
+      "rule": "The terminal ledger is a read model, not a second write model. It is rebuilt from the batch runs' progress records whenever the service (re)starts.",
+      "rule_zh": "终态账本是读模型，不是第二套写模型。服务每次（重）启，都从各批次 的进度记录重建账本。",
+      "rebuild": "A3 (arbitrated 2026-10-18): on (re)start, the service replays the latest runs' progress records (which carry the full classifications) through the terminal-decision rules — the same rules the live business closure uses, by construction — and restores terminal states, the seen-set, and the exception pool. A service crash no longer loses the ledger; the progress records are the single source of truth.",
+      "rebuild_zh": "A3（2026-10-18 仲裁）：（重）启时，服务把最近各批次的进度记录 （含完整分类结果）按终态判定规则重放一遍——这套规则与实时业务收尾 是同一套（同一份规则，不是两份拷贝）——恢复终态、已见集合与异常池。 服务宕机不再丢失账本；进度记录是唯一的事实来源。"
+    }
+  }

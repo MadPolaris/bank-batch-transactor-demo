@@ -1,7 +1,0 @@
-# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
-kind: note
-type: valueObject
-name: ErrorCodeMapping
-name_zh: 错误码映射
-description: Business meaning of each classified error code (e.g. BALANCE_INSUFFICIENT → 余额不足).
-description_zh: 每个已分类错误码的业务含义（如 BALANCE_INSUFFICIENT→余额不足）。

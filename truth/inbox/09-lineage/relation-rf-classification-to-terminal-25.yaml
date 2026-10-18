@@ -1,0 +1,24 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: relation
+name: ClassificationToTerminal
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 25
+payload:
+  {
+    "type": "relation",
+    "name": "ClassificationToTerminal",
+    "name_zh": "分类→终态血缘",
+    "stage": "refining",
+    "description": "classifications → business-closure: Success → settle (credited/paid); Suspicious → reconfirm → verified success joins settle, verified failure joins routing; Failure → routing-decision → abandon (rejected) / manual / rebatch; double account-update failure → except_pool; replay success → credited/paid.",
+    "description_zh": "classifications → 业务收尾：成功→结算（credited/paid）；可疑→复核→查证成功进结算、查证失败进路由；失败→路由决策→放弃（rejected）/转人工/重批；账务更新两次失败→异常池；重放成功→credited/paid。",
+    "links": [
+      "classifications → terminalState",
+      "suspicious → reconfirm-rule → verified",
+      "failure → routing-decision → next-step",
+      "except_pool → replay → credited|paid"
+    ]
+  }

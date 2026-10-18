@@ -1,0 +1,87 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: read-model
+name: "Chain Statistics"
+payload:
+  {
+    "id": "chain-stats",
+    "name": "Chain Statistics",
+    "name_zh": "链统计",
+    "description": "The reconciliation dashboard. Per chain it shows the terminal ledger (entered / in-flight / terminal buckets) and asserts the balanced equation; alongside it, flow counters for observation only (they count re-runs and are NOT reconciled).",
+    "description_zh": "对账大盘。每条链展示终态账本（进入 / 在途 / 终态桶）并断言 balanced 等式；旁边是只供观察的过程流量计数（含重跑，不参与对账）。",
+    "served_by": "GET /api/bank-batch/state",
+    "sources": [
+      "Customer Order",
+      "Batch Chain Run"
+    ],
+    "sourceAggregate": "Customer Order",
+    "visible_to": [],
+    "fields": [
+      {
+        "name": "scale",
+        "dataType": "object",
+        "description": "fixed demo config — customers 100000, batchSize 2000, batches 50, concurrency 6",
+        "source": "eventField:run-started.items"
+      },
+      {
+        "name": "batches.running",
+        "dataType": "integer",
+        "description": "live batch entities",
+        "source": "eventField:run-started.runId"
+      },
+      {
+        "name": "batches.queued",
+        "dataType": "integer",
+        "description": "waiting batch jobs",
+        "source": "eventField:run-started.runId"
+      },
+      {
+        "name": "batches.done",
+        "dataType": "integer",
+        "description": "completed batch runs",
+        "source": "eventField:run-completed.runId"
+      },
+      {
+        "name": "batches.recoveries",
+        "dataType": "integer",
+        "description": "crash-resume count",
+        "source": "eventField:run-recovered.runId"
+      },
+      {
+        "name": "per-chain.entered",
+        "dataType": "integer",
+        "description": "distinct (chain × customer) seen",
+        "source": "aggregateIdentity"
+      },
+      {
+        "name": "per-chain.inFlight",
+        "dataType": "integer",
+        "description": "entered − terminalCount",
+        "source": "aggregateIdentity"
+      },
+      {
+        "name": "per-chain.terminals",
+        "dataType": "map",
+        "description": "count by terminal state — recharge: credited/rejected/manual/except_pool; purchase: paid/rejected/manual/except_pool",
+        "source": "aggregateIdentity"
+      },
+      {
+        "name": "per-chain.balanced",
+        "dataType": "boolean",
+        "description": "entered == inFlight + Σ terminals (asserted per chain)",
+        "source": "aggregateIdentity"
+      },
+      {
+        "name": "flow counters",
+        "dataType": "map",
+        "description": "total / ok / suspicious / reconfirmOk / networkRetry / accountRetry / amount — observation only, include rebatch re-runs, not reconciled",
+        "source": "eventField:run-completed.runId"
+      },
+      {
+        "name": "feed",
+        "dataType": "string[]",
+        "description": "last 40 human-readable event lines",
+        "source": "eventField:run-completed.runId"
+      }
+    ]
+  }

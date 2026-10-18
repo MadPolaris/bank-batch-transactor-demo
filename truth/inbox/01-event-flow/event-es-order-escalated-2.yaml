@@ -1,0 +1,39 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: event
+name: OrderEscalated
+origin:
+  stage: eventStorming
+  board: reconstructed
+  seq: 2
+payload:
+  {
+    "type": "event",
+    "name": "OrderEscalated",
+    "name_zh": "转人工",
+    "stage": "eventStorming",
+    "description": "A failed item needs a human: parked as manual with a ticket id for follow-up.",
+    "description_zh": "失败项需要人工：以工单号记为 manual 等待跟进。",
+    "info": {
+      "timeline": "batch-chain",
+      "sequence": 9,
+      "fields": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "ticketId",
+          "dataType": "string",
+          "description": "如 MAX_RETRY_EXCEEDED-TIMEOUT"
+        }
+      ]
+    }
+  }

@@ -1,0 +1,34 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: event
+name: OrderParkedInExceptionPool
+origin:
+  stage: eventStorming
+  board: reconstructed
+  seq: 4
+payload:
+  {
+    "type": "event",
+    "name": "OrderParkedInExceptionPool",
+    "name_zh": "进入异常池",
+    "stage": "eventStorming",
+    "description": "The account update failed twice; the order waits in the exception pool for human replay.",
+    "description_zh": "账务更新失败两次；订单进入异常池等待人工重放。",
+    "info": {
+      "timeline": "batch-chain",
+      "sequence": 10,
+      "fields": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        }
+      ]
+    }
+  }

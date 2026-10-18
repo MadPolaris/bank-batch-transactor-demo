@@ -1,8 +1,0 @@
-# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
-kind: note
-type: valueObject
-name: ResultClassification
-name_zh: 结果三分类
-description: 'Every (raw result × item) lands in exactly one of: Success, Failure, Suspicious. Suspicious
-  must be reconfirmed before a final state.'
-description_zh: 每个（原始结果×item）有且仅落入：成功、失败、可疑之一。可疑必须复核才能定终态。

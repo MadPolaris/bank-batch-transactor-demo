@@ -1,0 +1,41 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: command
+name: SimulateCrash
+origin:
+  stage: commandStorming
+  board: reconstructed
+  seq: 9
+payload:
+  {
+    "type": "command",
+    "name": "SimulateCrash",
+    "id": "simulate-crash",
+    "name_zh": "模拟宕机",
+    "stage": "commandStorming",
+    "description": "Demo-only: stop the run's process while keeping its progress records; the next instruction restarts it and the run resumes from the breakpoint.",
+    "description_zh": "仅演示用：停掉运行进程但保留进度记录；下一条指令重启进程，运行从断点续跑。",
+    "info": {
+      "id": "simulate-crash",
+      "triggers": [
+        "role: 运营人员"
+      ],
+      "produces": [
+        "run-recovered"
+      ],
+      "parameters": [
+        {
+          "name": "runId",
+          "dataType": "string",
+          "description": "要打断的运行"
+        }
+      ],
+      "guards": [
+        "仅演示界面可用，非生产协议"
+      ]
+    },
+    "links": [
+      "event:RunRecovered"
+    ]
+  }

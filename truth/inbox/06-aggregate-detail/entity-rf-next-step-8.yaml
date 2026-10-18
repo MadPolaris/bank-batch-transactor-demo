@@ -1,0 +1,18 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: entity
+name: NextStep
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 8
+payload:
+  {
+    "type": "entity",
+    "name": "NextStep",
+    "name_zh": "路由动作",
+    "stage": "refining",
+    "description": "Four routing actions for a failed item: RetrySameArea, RouteToArea, ManualIntervention, Scrap.",
+    "description_zh": "失败项的四种路由动作：同区重试、换区、转人工、放弃。"
+  }

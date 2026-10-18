@@ -1,25 +1,53 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: value-object
-id: poll-result
-name: Poll Result
-name_zh: 轮询结果
-description: >
-  What response-polling returned. Timeout and Error become classified stage
-  failures (POLL_TIMEOUT / POLL_ERROR); Ready continues the chain.
-description_zh: >
-  响应轮询的结果。超时与错误会变成已分类的阶段失败
-  （POLL_TIMEOUT / POLL_ERROR）；就绪则链继续。
-variants:
-  - name: ResponseReady
-    description: The result file is ready.
-    fields:
-      - { name: file, type: batch-file.ResponseFile, description: The response file }
-  - name: PollTimeout
-    description: Never became ready in time — classified failure POLL_TIMEOUT.
-    fields:
-      - { name: attempts, type: integer, description: Poll attempts made }
-      - { name: waitMs, type: integer, description: Total wait }
-  - name: PollError
-    description: Polling itself errored — classified failure POLL_ERROR.
-    fields:
-      - { name: cause, type: string, description: Underlying cause }
+name: "Poll Result"
+payload:
+  {
+    "id": "poll-result",
+    "name": "Poll Result",
+    "name_zh": "轮询结果",
+    "description": "What response-polling returned. Timeout and Error become classified stage failures (POLL_TIMEOUT / POLL_ERROR); Ready continues the chain.",
+    "description_zh": "响应轮询的结果。超时与错误会变成已分类的阶段失败 （POLL_TIMEOUT / POLL_ERROR）；就绪则链继续。",
+    "fields": [],
+    "variants": [
+      {
+        "name": "ResponseReady",
+        "description": "The result file is ready.",
+        "fields": [
+          {
+            "name": "file",
+            "dataType": "batch-file.ResponseFile",
+            "description": "The response file"
+          }
+        ]
+      },
+      {
+        "name": "PollTimeout",
+        "description": "Never became ready in time — classified failure POLL_TIMEOUT.",
+        "fields": [
+          {
+            "name": "attempts",
+            "dataType": "integer",
+            "description": "Poll attempts made"
+          },
+          {
+            "name": "waitMs",
+            "dataType": "integer",
+            "description": "Total wait"
+          }
+        ]
+      },
+      {
+        "name": "PollError",
+        "description": "Polling itself errored — classified failure POLL_ERROR.",
+        "fields": [
+          {
+            "name": "cause",
+            "dataType": "string",
+            "description": "Underlying cause"
+          }
+        ]
+      }
+    ]
+  }

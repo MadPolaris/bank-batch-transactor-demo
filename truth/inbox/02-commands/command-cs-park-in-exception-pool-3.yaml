@@ -1,0 +1,43 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: command
+name: ParkInExceptionPool
+origin:
+  stage: commandStorming
+  board: reconstructed
+  seq: 3
+payload:
+  {
+    "type": "command",
+    "name": "ParkInExceptionPool",
+    "id": "park-in-exception-pool",
+    "name_zh": "放入异常池",
+    "stage": "commandStorming",
+    "description": "The account update failed twice: park the order in the exception pool to wait for human replay.",
+    "description_zh": "账务更新失败两次：订单进入异常池等待人工重放。",
+    "info": {
+      "id": "park-in-exception-pool",
+      "triggers": [
+        "policy: 批次业务收尾"
+      ],
+      "produces": [
+        "order-parked-in-exception-pool"
+      ],
+      "parameters": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        }
+      ]
+    },
+    "links": [
+      "event:OrderParkedInExceptionPool"
+    ]
+  }

@@ -1,0 +1,29 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: event
+name: RunCompleted
+origin:
+  stage: eventStorming
+  board: reconstructed
+  seq: 6
+payload:
+  {
+    "type": "event",
+    "name": "RunCompleted",
+    "name_zh": "批次跑完",
+    "stage": "eventStorming",
+    "description": "All six stages finished; the run's classifications are final and the business closure takes over.",
+    "description_zh": "六阶段全部完成；本批的分类结果已定，业务收尾接手。",
+    "info": {
+      "timeline": "batch-chain",
+      "sequence": 4,
+      "fields": [
+        {
+          "name": "runId",
+          "dataType": "string",
+          "description": ""
+        }
+      ]
+    }
+  }

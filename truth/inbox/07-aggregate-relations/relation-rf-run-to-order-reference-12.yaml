@@ -1,0 +1,20 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: relation
+name: RunToOrderReference
+origin:
+  stage: refining
+  board: reconstructed
+  seq: 12
+payload:
+  {
+    "type": "relation",
+    "name": "RunToOrderReference",
+    "name_zh": "批次链运行→客户订单（引用）",
+    "stage": "refining",
+    "description": "一批运行的分类结果写入多行客户订单终态。基数：一对多（一批运行 → 多个客户订单）。业务含义：运行是'生产'方，订单账本是'记录'方；运行只管算出分类，终态落账由业务收尾按规则写。",
+    "description_zh": "一批运行的分类结果写入多行客户订单终态。基数：一对多（一批运行 → 多个客户订单）。业务含义：运行是“生产”方，订单账本是“记录”方；运行只管算出分类，终态落账由业务收尾按规则写。",
+    "cardinality": "1:N",
+    "meaning": "运行产出分类，订单账本记录终态"
+  }

@@ -1,0 +1,48 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: command
+name: EscalateToManual
+origin:
+  stage: commandStorming
+  board: reconstructed
+  seq: 1
+payload:
+  {
+    "type": "command",
+    "name": "EscalateToManual",
+    "id": "escalate-to-manual",
+    "name_zh": "转人工",
+    "stage": "commandStorming",
+    "description": "Route a failed item to human handling with a ticket id.",
+    "description_zh": "把失败项转人工，带工单号跟进。",
+    "info": {
+      "id": "escalate-to-manual",
+      "triggers": [
+        "policy: 失败路由决策"
+      ],
+      "produces": [
+        "order-escalated"
+      ],
+      "parameters": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "ticketId",
+          "dataType": "string",
+          "description": ""
+        }
+      ]
+    },
+    "links": [
+      "event:OrderEscalated"
+    ]
+  }

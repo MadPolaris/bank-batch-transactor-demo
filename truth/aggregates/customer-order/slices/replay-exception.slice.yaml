@@ -1,35 +1,60 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: slice
-id: replay-exception
-name: Replay Exception
-name_zh: 人工重放
-description: >
-  A human reviewed a parked order and replays it: the pool entry is removed
-  and the account update is retried WITHOUT fault injection, so the money does
-  move. A1 (arbitrated 2026-10-18): a successful replay is a legal terminal
-  transition except_pool → credited/paid. The ledger and the money move
-  together or not at all — if the transition is refused (the order is no
-  longer in except_pool), the money is untouched and the pool entry is
-  restored.
-description_zh: >
-  人工复核被搁置的订单后重放：异常池条目移除，账务更新重试时不再注入故障，
-  资金确实会动。A1（2026-10-18 仲裁）：重放成功是一次合法的终态迁移，
-  except_pool → credited/paid。账和钱要么一起变，要么都不变——若迁移被拒绝
-  （订单已不在 except_pool），资金不动，池条目恢复。
-aggregate: customer-order
-parameters:
-  - { name: chain, type: string, description: Chain the order belongs to }
-  - { name: customerId, type: string, description: Customer identifier }
-guards:
-  - description: order is currently in except_pool
-  - description: human confirmed (one-click replay in the UI)
-produces:
-  - exception-replayed
+aggregate: "Customer Order"
+command: replay-exception
+payload:
+  {
+    "name": "replay-exception",
+    "name_zh": "人工重放",
+    "description": "A human reviewed a parked order and replays it: the pool entry is removed and the account update is retried WITHOUT fault injection, so the money does move. A1 (arbitrated 2026-10-18): a successful replay is a legal terminal transition except_pool → credited/paid. The ledger and the money move together or not at all — if the transition is refused (the order is no longer in except_pool), the money is untouched and the pool entry is restored.",
+    "description_zh": "人工复核被搁置的订单后重放：异常池条目移除，账务更新重试时不再注入故障， 资金确实会动。A1（2026-10-18 仲裁）：重放成功是一次合法的终态迁移， except_pool → credited/paid。账和钱要么一起变，要么都不变——若迁移被拒绝 （订单已不在 except_pool），资金不动，池条目恢复。",
+    "parameters": [
+      {
+        "name": "chain",
+        "dataType": "string",
+        "description": "Chain the order belongs to"
+      },
+      {
+        "name": "customerId",
+        "dataType": "string",
+        "description": "Customer identifier"
+      }
+    ],
+    "guards": [
+      "order is currently in except_pool",
+      "human confirmed (one-click replay in the UI)"
+    ],
+    "produces": [
+      "exception-replayed"
+    ]
+  }
 events:
-  exception-replayed:
-    description: The pooled order settled after human replay; the ledger moved with the money.
-    payload:
-      - { name: chain, type: string, description: Chain }
-      - { name: customerId, type: string, description: Customer identifier }
-      - { name: moneyMoved, type: boolean, description: "true — replay always moves the money (no fault injection)" }
-      - { name: newTerminal, type: string, description: '"credited" or "paid" — the ledger transitioned with the money' }
+  {
+    "exception-replayed": {
+      "name": "exception-replayed",
+      "description": "The pooled order settled after human replay; the ledger moved with the money.",
+      "payloads": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": "Chain"
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": "Customer identifier"
+        },
+        {
+          "name": "moneyMoved",
+          "dataType": "boolean",
+          "description": "true — replay always moves the money (no fault injection)"
+        },
+        {
+          "name": "newTerminal",
+          "dataType": "string",
+          "description": "\"credited\" or \"paid\" — the ledger transitioned with the money"
+        }
+      ]
+    }
+  }

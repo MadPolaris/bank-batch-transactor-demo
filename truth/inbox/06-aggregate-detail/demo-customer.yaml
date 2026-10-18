@@ -1,7 +1,0 @@
-# ═══ truth note — reconstructed from truth/ tree (no live workshop was held) ═══
-kind: note
-type: valueObject
-name: DemoCustomer
-name_zh: 演示客户
-description: 'One demo customer: customerId, name, amount. The scale demo runs 100,000 of them.'
-description_zh: 一个演示客户：customerId、姓名、金额。规模演示跑 10 万个。

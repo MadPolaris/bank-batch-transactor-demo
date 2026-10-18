@@ -1,0 +1,37 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: role
+name: Operator
+origin:
+  stage: commandStorming
+  board: reconstructed
+  seq: 5
+payload:
+  {
+    "type": "role",
+    "name": "Operator",
+    "id": "operator",
+    "name_zh": "运营人员",
+    "stage": "commandStorming",
+    "description": "The human role: starts batch runs, watches the reconciliation dashboard, replays exception-pool orders.",
+    "description_zh": "人的角色：启动批量跑批、看对账大盘、重放异常池订单（含演示时的宕机按钮——本演示中操作员兼任演示者）。",
+    "can_issue": [
+      "start-batch-run",
+      "simulate-crash",
+      "replay-exception"
+    ],
+    "can_view": [
+      "chain-stats",
+      "event-feed",
+      "exception-pool"
+    ],
+    "links": [
+      "command:StartBatchRun",
+      "command:SimulateCrash",
+      "command:ReplayException",
+      "readModel:ChainStatistics",
+      "readModel:LiveEventFeed",
+      "readModel:ExceptionPool"
+    ]
+  }

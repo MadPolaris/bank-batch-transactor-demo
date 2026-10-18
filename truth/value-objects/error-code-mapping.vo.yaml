@@ -1,30 +1,40 @@
-# ═══ truth atom — hand-editable; types: truth/types.yaml ═══
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
 kind: value-object
-id: error-code-mapping
-name: Error Code Mapping
-name_zh: 错误码映射
-description: >
-  Business-configurable mapping from external-system result codes to the
-  tri-classification. Exact-match on the extracted code; anything unlisted
-  falls through to Failure.
-description_zh: >
-  业务可配置的外部系统结果码 → 三分类映射。对提取出的码做精确匹配；
-  未列出的码一律落入 Failure。
-fields:
-  - name: successCodes
-    type: string[]
-    description: Codes that mark the item Success outright.
-    default: [OK, SUCCESS]
-  - name: failureCodes
-    type: map<string, next-step>
-    description: Codes that mark the item Failure, each with a suggested next step (ref next-step).
-    default: {}
-  - name: suspiciousCodes
-    type: string[]
-    description: Codes that mark the item Suspicious (needs reconfirm).
-    default: [TIMEOUT, PARTIAL, NETWORK_ERROR]
-algorithm: >
-  code = extractCode(raw); item = associateItem(raw, items);
-  successCodes ∋ code → Success;
-  suspiciousCodes ∋ code → Suspicious;
-  otherwise → Failure(code, message, failureCodes.get(code)).
+name: "Error Code Mapping"
+payload:
+  {
+    "id": "error-code-mapping",
+    "name": "Error Code Mapping",
+    "name_zh": "错误码映射",
+    "description": "Business-configurable mapping from external-system result codes to the tri-classification. Exact-match on the extracted code; anything unlisted falls through to Failure.",
+    "description_zh": "业务可配置的外部系统结果码 → 三分类映射。对提取出的码做精确匹配； 未列出的码一律落入 Failure。",
+    "fields": [
+      {
+        "name": "successCodes",
+        "dataType": "string[]",
+        "description": "Codes that mark the item Success outright.",
+        "default": [
+          "OK",
+          "SUCCESS"
+        ]
+      },
+      {
+        "name": "failureCodes",
+        "dataType": "map<string, next-step>",
+        "description": "Codes that mark the item Failure, each with a suggested next step (ref next-step).",
+        "default": {}
+      },
+      {
+        "name": "suspiciousCodes",
+        "dataType": "string[]",
+        "description": "Codes that mark the item Suspicious (needs reconfirm).",
+        "default": [
+          "TIMEOUT",
+          "PARTIAL",
+          "NETWORK_ERROR"
+        ]
+      }
+    ],
+    "algorithm": "code = extractCode(raw); item = associateItem(raw, items); successCodes ∋ code → Success; suspiciousCodes ∋ code → Suspicious; otherwise → Failure(code, message, failureCodes.get(code))."
+  }

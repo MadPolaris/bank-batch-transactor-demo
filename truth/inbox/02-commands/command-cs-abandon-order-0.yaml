@@ -1,0 +1,48 @@
+# ═══ truthsrc atom — hand-editable; contract: SCHEMA.md ═══
+
+kind: note
+type: command
+name: AbandonOrder
+origin:
+  stage: commandStorming
+  board: reconstructed
+  seq: 0
+payload:
+  {
+    "type": "command",
+    "name": "AbandonOrder",
+    "id": "abandon-order",
+    "name_zh": "放弃订单",
+    "stage": "commandStorming",
+    "description": "Route a failed item to abandon: terminal, no retry, no human.",
+    "description_zh": "把失败项路由为放弃：终态，不重试、不转人工。",
+    "info": {
+      "id": "abandon-order",
+      "triggers": [
+        "policy: 失败路由决策"
+      ],
+      "produces": [
+        "order-rejected"
+      ],
+      "parameters": [
+        {
+          "name": "chain",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "customerId",
+          "dataType": "string",
+          "description": ""
+        },
+        {
+          "name": "reason",
+          "dataType": "string",
+          "description": ""
+        }
+      ]
+    },
+    "links": [
+      "event:OrderRejected"
+    ]
+  }
