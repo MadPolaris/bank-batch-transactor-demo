@@ -1,0 +1,6 @@
+GET     /bank-batch/durable                  controllers.BankDurableWorkflowController.index
+GET     /api/bank-durable/external/tasks     controllers.BankDurableWorkflowController.externalTasks
+POST    /api/bank-durable/external/complete  controllers.BankDurableWorkflowController.externalComplete
+POST    /api/bank-durable/:jobId/start       controllers.BankDurableWorkflowController.start(jobId: String)
+POST    /api/bank-durable/:jobId/reconcile   controllers.BankDurableWorkflowController.reconcile(jobId: String, batchId: String)
+GET     /api/bank-durable/:jobId/state       controllers.BankDurableWorkflowController.state(jobId: String)
